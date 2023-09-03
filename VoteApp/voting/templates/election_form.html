@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load crispy_forms_tags %}       
+	<!--CRIAR ELEICAO-->
+	<div class="container form-register py-5" autocomplete="off">
+		<h1>Criar eleição</h1>
+		<form method="POST">
+			{% csrf_token %}
+			{{ election_form }}
+			<button class="btn btn-primary" type="submit">Criar</button>
+		</form>
+	</div>
+    
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+{% load crispy_forms_tags %}       
+	<!--REGISTER-->
+	<div class="container form-register py-5" autocomplete="off">
+		<h1>Registrar-se</h1>
+		<form method="POST">
+			{% csrf_token %}
+			{{ register_form }}
+			<button class="btn btn-primary" type="submit">Registrar</button>
+		</form>
+		<p class="text-center">Se já possui conta, <a href="http://127.0.0.1:8000/contas/login/">clique aqui</a></p>
+	</div>
+    
+{% endblock %}
