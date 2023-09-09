@@ -1,0 +1,20 @@
+Comandos
+- Criação do ambiente virtual: "py -3 -m venv nome-do-ambiente"
+- Ativação do ambiente virtual no Windows: ".\venv\Scripts\activate"
+- Desativar o ambiente virtual no Windows: "deactivate"
+- Instalação do Django: "pip install Django"
+- Instalação do Django Rest Framework: "pip install djangorestframework"
+- Criar projeto Django (sem o ponto o django cria uma subpasta): "django-admin startproject nome-projeto ."
+- Criar app no projeto Django: "django-admin startapp nome-app"
+- Criar migrations: "python manage.py makemigrations"
+- Criar migrations de um aplicativo: "python manage.py makemigrations nome-app"
+- Aplicar migrations (criar tabelas): "python manage.py migrate"
+- Aplicar migrations (criar tabelas) de um aplicativo: "python manage.py migrate nome-app"
+- Criar um superusuario da aplicação: "python manage.py createsuperuser"
+- Criar documento com os requisitos do projeto: "pip freeze > requirementes.txt"
+- Instalar o projeto em outra máquina: "pip install -r requirementes.txt"
+
+- Executar o projeto: "python manage.py runserver"
+
+- Code highlighting: "pip install pygments"
+- Usando o httpie para testar a app via terminal: "pip install httpie"
