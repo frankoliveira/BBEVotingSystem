@@ -1,0 +1,6 @@
+{
+    "transaction": {
+        "type": "vote",
+        "data": "votei nulo"
+    }
+}

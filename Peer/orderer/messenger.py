@@ -1,3 +1,4 @@
+from typing import Any
 import pika
 import os, json
 
@@ -48,7 +49,7 @@ class MessageSender():
     '''
     
     @staticmethod
-    def send(configuration: MessageConfiguration, data: str):
+    def send_transaction(configuration: MessageConfiguration, data: str):
         credentials = pika.PlainCredentials(configuration.login, configuration.password)
         connection_parameters = pika.ConnectionParameters(host=configuration.host, 
                                                               port=configuration.port, 
@@ -58,15 +59,80 @@ class MessageSender():
         connection = pika.BlockingConnection(connection_parameters)
         channel = connection.channel()
 
-        body = json.dumps({
-                "transaction": {
-                    "data": data
-                }
-            })
+        body = data
 
-        channel.exchange_declare(exchange=configuration.sender_exchange, exchange_type='direct')
-        channel.basic_publish(exchange=configuration.sender_exchange, 
-                                  routing_key=configuration.sender_routing_key, 
-                                  body=body)
+        #channel.exchange_declare(exchange=configuration.sender_exchange, exchange_type='direct')
+        channel.basic_publish(exchange=configuration.sender_exchange, routing_key=configuration.sender_routing_key, body=body)
                     
         connection.close()
+
+
+class MessageReceiver():
+    '''
+    Receives messages according to specified receive settings
+    '''
+
+    channel = None
+    configuration = None
+    queue = None
+
+    @classmethod
+    def consume_transaction(cls, configuration: MessageConfiguration):
+        cls.configuration = configuration
+        credentials = pika.PlainCredentials(configuration.login, configuration.password)
+        nonnection_parameters = pika.ConnectionParameters(host=configuration.host, 
+                                                              port=configuration.port, 
+                                                              credentials=credentials, 
+                                                              socket_timeout=configuration.socket_timeout)
+        connection = pika.BlockingConnection(nonnection_parameters)
+        cls.channel = connection.channel()
+        #cls.queue = cls.channel.queue_declare(queue=configuration.receiver_queue)
+        #cls.channel.exchange_declare(exchange=configuration.receiver_exchange, exchange_type='direct')
+        #cls.channel.queue_bind(exchange=configuration.receiver_exchange, queue=configuration.receiver_queue, routing_key=configuration.receiver_routing_key)
+
+        queue = cls.channel.queue_declare(queue=cls.configuration.receiver_queue)
+        queue_message_count = queue.method.message_count
+
+        transaction = None
+
+        if queue_message_count > 0:
+            # Get one message and break out
+            for method_frame, properties, body in cls.channel.consume(cls.configuration.receiver_queue):
+
+                # Display the message parts
+                print(f'method_frame:{method_frame}')
+                print(f'properties:{properties}')
+                print(f'body:{body}')
+                
+                transaction = body
+                # Acknowledge the message
+                cls.channel.basic_ack(method_frame.delivery_tag)
+
+                # Escape out of the loop after 10 messages
+                if method_frame.delivery_tag == 1:
+                    break
+        
+        connection.close()
+        return transaction
+
+
+    @classmethod  
+    def get_pending_transactions(cls, configuration: MessageConfiguration) -> int:
+        cls.configuration = configuration
+        credentials = pika.PlainCredentials(configuration.login, configuration.password)
+        nonnection_parameters = pika.ConnectionParameters(host=configuration.host, 
+                                                              port=configuration.port, 
+                                                              credentials=credentials, 
+                                                              socket_timeout=configuration.socket_timeout)
+        connection = pika.BlockingConnection(nonnection_parameters)
+        cls.channel = connection.channel()
+
+        queue = cls.channel.queue_declare(queue=cls.configuration.receiver_queue)
+        total_pending_transactions = queue.method.message_count
+        connection.close()
+        return total_pending_transactions
+
+
+
+
+            

@@ -1,5 +1,12 @@
-from messenger import MessageConfiguration, MessageSender
-from models import Orderer
+from .messenger import MessageConfiguration, MessageSender, MessageReceiver
+from blockchain.models import Blockchain
+#Models
+from .models import Orderer
+from transaction.models import Transaction
+
+#Serializers
+from transaction.serializers import TransactionSerializer
+
 import json
 from hashlib import sha256
 
@@ -19,34 +26,85 @@ message_config = MessageConfiguration(
     host='127.0.0.1',
     port=5672,
     socket_timeout=1,
-    login='peer1',
-    password='123456',
-    sender_exchange='transactions',
-    sender_routing_key='transactions',
-    receiver_queue='transactions',
-    receiver_exchange='transactions',
-    receiver_routing_key='transactions'
+    login='guest',
+    password='guest',
+    sender_exchange='transactions_exchange',
+    sender_routing_key='transactions_routing',
+
+    receiver_queue='transactions_queue',
+    receiver_exchange='transactions_exchange',
+    receiver_routing_key='transactions_routing'
 )
 
-class TransactionList(APIView):
+class PendingTransactionList(APIView):
+    '''
+    Add a transaction to the pending transactions queue.
+    '''
     def post(self, request, format=None):
         try:
-            transaction_data = str(request.data)
-            transaction = Orderer.create_transaction(transaction_data)
+            data = request.data['transaction']
+            transaction = Orderer.mount_transaction_message(data)
             transaction_str = json.dumps(transaction, sort_keys=True)
+            MessageSender.send_transaction(configuration=message_config, data=transaction_str)
+            return Response(data=f'Transação criada. ID:{transaction["id"]}', status=status.HTTP_201_CREATED)
 
-            MessageSender.send(configuration=message_config,
-                               data=transaction_str)
-            return Response(data=f'Transacao criada com id: {transaction.id}', status=status.HTTP_201_CREATED)
-        except:
-            return Response("Erro ao adicionar transação.", status=status.HTTP_400_BAD_REQUEST)
-    
+        except Exception as ex:
+            return Response(data=f"Erro na solicitação:{ex}", status=status.HTTP_400_BAD_REQUEST)
+        
+    def get(self, request, format=None):
+        try:
+            num_transactions = 0
+            num_transactions = MessageReceiver.get_pending_transactions(configuration=message_config)
+            return Response(data=f'Transações pendentes: {num_transactions}')
+        
+        except Exception as ex:
+            return Response(data=f"Erro na solicitação:{ex}", status=status.HTTP_400_BAD_REQUEST)
+        
+class ConfirmedTransactionDetail(APIView):
+    '''
+    Confirmed transactions.
+    '''
 
+    def get_object(self, pk):
+        try:
+            return Transaction.objects.get(pk=pk)
+        except Transaction.DoesNotExist:
+            raise Http404
+        
+    def get(self, request, pk, format=None):
+        transaction = self.get_object(pk)
+        serializer = TransactionSerializer(transaction)
+        return Response(data=serializer.data)
+
+class BlockMining(APIView):
+    '''
+    Mine a block
+    '''
+    transaction_per_block = 1
+
+    def get(self, request, format=None):
+        try:
+            transaction = MessageReceiver.consume_transaction(configuration=message_config)
+            if transaction:
+                new_block = Blockchain.create_block(peer = 'peer_1',
+                                                    timestamp = datetime.now(), 
+                                                    merkle_root = 'root', 
+                                                    previous_hash = Blockchain.get_last_block().hash(),
+                                                    transactions = transaction
+                                                    )
+
+                serializer = BlockSerializer(new_block)
+                return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as ex:
+                return Response(data=f"Erro na solicitação:{ex}", status=status.HTTP_400_BAD_REQUEST)
+
+
+"""
 @api_view(['POST'])
 def create_transaction(request, format=None):
-    """
+    '''
     Create a transaction
-    """
+    '''
 
     if request.method == 'POST':
 
@@ -63,4 +121,5 @@ def create_transaction(request, format=None):
                 serializer = BlockSerializer(new_block)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
         
-    return Response("Erro ao criar bloco.", status=status.HTTP_400_BAD_REQUEST)
+    return Response('Erro ao criar bloco.', status=status.HTTP_400_BAD_REQUEST)
+"""

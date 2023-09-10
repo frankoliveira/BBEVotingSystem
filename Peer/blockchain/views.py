@@ -59,7 +59,6 @@ def blockchain_block_list(request, format=None):
         if serializer.is_valid():  
             new_block = Blockchain.create_block(
                                                 peer = serializer.data['peer'],
-                                                version = serializer.data['version'],
                                                 timestamp = serializer.data['timestamp'], 
                                                 merkle_root = serializer.data['merkle_root'], 
                                                 previous_hash = serializer.data['previous_hash'],

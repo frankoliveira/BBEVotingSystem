@@ -12,7 +12,6 @@ class Blockchain:
         #chain_size = Block.objects.all.count()
         genesis_block = Block(
                               peer = '1',
-                              version = '1.0',
                               timestamp = datetime(2022, 12, 28, 23, 55, 59, 342380),
                               merkle_root = '1',
                               previous_hash = 'None',
@@ -22,12 +21,11 @@ class Blockchain:
         return genesis_block
 
     @staticmethod
-    def create_block(peer, version, timestamp, merkle_root, previous_hash, transactions) -> Block:
+    def create_block(peer, timestamp, merkle_root, previous_hash, transactions) -> Block:
         last_block = Block.objects.last()
         if last_block:
             new_block = Block.objects.create(
                                              peer = peer,
-                                             version = version,
                                              timestamp = timestamp,
                                              merkle_root = merkle_root, 
                                              previous_hash=last_block.hash(),
