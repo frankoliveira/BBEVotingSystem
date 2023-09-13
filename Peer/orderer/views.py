@@ -95,6 +95,7 @@ class BlockMining(APIView):
 
                 serializer = BlockSerializer(new_block)
                 return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+            return Response(data="Não há transação pendente", status=status.HTTP_201_CREATED)
         except Exception as ex:
                 return Response(data=f"Erro na solicitação:{ex}", status=status.HTTP_400_BAD_REQUEST)
 

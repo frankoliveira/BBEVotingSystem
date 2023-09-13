@@ -5,11 +5,11 @@ from datetime import datetime
 
 class Block(models.Model):
     #editable=False: the field will not be displayed in the admin or any other ModelForm. They are also skipped during model validation.
-    peer = models.CharField('Peer', max_length=100) #nó responsável pela criação do bloco
-    timestamp = models.DateTimeField('Timestamp', auto_now=False) #cria a hora sozinho a cada save()
-    merkle_root = models.CharField('Merkle Root', max_length=64) #equivale ao hash da raiz da Mekle Tree
-    previous_hash = models.CharField('Previous Hash', max_length=64)
-    transactions = models.CharField('Transactions', max_length=100)
+    peer = models.CharField('Peer', max_length=100, db_column='peer') #nó responsável pela criação do bloco
+    timestamp = models.DateTimeField('Timestamp', auto_now=False, db_column='timestamp') #cria a hora sozinho a cada save()
+    merkle_root = models.CharField('Merkle Root', max_length=64, db_column='merkle_root') #equivale ao hash da raiz da Mekle Tree
+    previous_hash = models.CharField('Previous Hash', max_length=64, db_column='previous_hash')
+    transactions = models.CharField('Transactions', max_length=100, db_column='transactions')
     
     class Meta:
         verbose_name = 'Block'
