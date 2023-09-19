@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import Peer
 
-# Register your models here.
+@admin.register(Peer)
+class PeerModelAdmin(admin.ModelAdmin):
+    list_display = ('host', 'port', 'name', 'is_publishing_node')

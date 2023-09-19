@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'transaction',
     'block',
     'blockchain',
+    'peer',
 
     'django.contrib.admin',
     'django.contrib.auth',

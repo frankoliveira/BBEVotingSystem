@@ -4,8 +4,7 @@ from orderer import views
 
 urlpatterns = [
     path('pending-transactions/', views.PendingTransactionList.as_view()),
-    path('confirmed-transactions/<str:pk>/', views.ConfirmedTransactionDetail.as_view()),
-    path('mine-block/', views.BlockMining.as_view())
+    path('create-consensus-block/', views.create_consensus_block)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns) 

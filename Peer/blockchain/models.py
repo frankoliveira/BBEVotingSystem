@@ -11,11 +11,12 @@ class Blockchain:
     def create_genesis_block() -> Block:
         #chain_size = Block.objects.all.count()
         genesis_block = Block(
-                              peer = '1',
-                              timestamp = datetime(2022, 12, 28, 23, 55, 59, 342380),
-                              merkle_root = '1',
-                              previous_hash = 'None',
-                              transactions= 'Genesis'
+                              peer = '8000',
+                              #timestamp = datetime(2022, 12, 28, 23, 55, 59, 342380),
+                              timestamp = datetime.now(),
+                              merkle_root = '',
+                              previous_hash = '',
+                              transactions= ''
                               )
         genesis_block.save()
         return genesis_block

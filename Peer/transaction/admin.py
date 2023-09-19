@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import PendingTransaction
 
-# Register your models here.
+@admin.register(PendingTransaction)
+class PendingTransactionModelAdmin(admin.ModelAdmin):
+    list_display = ('id', 'input', 'confirmed')

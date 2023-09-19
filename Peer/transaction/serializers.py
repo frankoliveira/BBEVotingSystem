@@ -1,7 +1,12 @@
 from rest_framework import serializers
-from transaction.models import Transaction
+from transaction.models import PendingTransaction, TransactionBlock
 
-class TransactionSerializer(serializers.ModelSerializer):
+class PendingTransactionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Transaction
-        fields = ['id', 'timestamp','id_block']
+        model = PendingTransaction
+        fields = ['id', 'input', 'timestamp', 'signature', 'confirmed']
+
+class TransactionBlockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TransactionBlock
+        fields = ['id_transaction', 'id_block', 'position']
