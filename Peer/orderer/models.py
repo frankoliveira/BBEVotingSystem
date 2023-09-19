@@ -67,7 +67,7 @@ class Orderer():
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/pending-transactions/'
-                requests.post(url=url, json=pending_transction_dict)
+                requests.post(url=url, json=message)
             except Exception as ex:
                 print(f"erro broadcast_pending_transaction: {ex}")
 
@@ -102,7 +102,7 @@ class Orderer():
             block_serializer = BlockSerializer(new_block)
             Orderer.get_instance().consensus_block_dict = block_serializer.data
             Orderer.prepare(block_dict=block_serializer.data)
-            Orderer.commit(commit_dict="AQUI VEM O DICT")
+            Orderer.commit(commit_dict=True)
 
         return block_serializer.data
     
@@ -146,7 +146,7 @@ class Orderer():
 
     @staticmethod
     def decide():
-        if Orderer.get_instance().consensus_positive_commits > 1:
+        if Orderer.get_instance().consensus_positive_commits > 0:
             block_serializer = BlockSerializer(Orderer.get_instance().consensus_block_dict)
             if block_serializer.is_valid():
                 block: Block = block_serializer.save()

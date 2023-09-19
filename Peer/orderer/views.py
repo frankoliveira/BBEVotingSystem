@@ -27,7 +27,6 @@ from rest_framework.decorators import api_view
 def pending_transaction(request, format=None):
     #remote_ip = get_remote_ip(request)
     port = request.data["port"]
-    input = request.data['input']
     remote_peer = None
     
     try:
@@ -36,12 +35,13 @@ def pending_transaction(request, format=None):
         return Response(data='Você não tem permissão', status=status.HTTP_400_BAD_REQUEST)
         
     if not remote_peer.is_publishing_node:
+        input = request.data['input']
         id = sha256(input.encode()).hexdigest()
         pending = PendingTransaction()
         pending.id = id
         pending.input = input
         pending.timestamp = datetime.now()
-        pending.signature = ''
+        pending.signature = 'assinatura'
         pending.confirmed = False
         pending.save()
         pending_transaction_serializer = PendingTransactionSerializer(instance=pending)

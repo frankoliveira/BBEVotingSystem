@@ -1,8 +1,8 @@
 from django.db import models
 
 class Peer(models.Model):
-    host = models.CharField(verbose_name='Host', max_length=100, primary_key=True, db_column='host')
-    port = models.IntegerField(verbose_name='Porta', db_column='port')
+    host = models.CharField(verbose_name='Host', max_length=100, db_column='host') #essa é a pk
+    port = models.IntegerField(verbose_name='Porta', primary_key=True, db_column='port')
     name = models.CharField(verbose_name='Name', max_length=100, db_column='name')
     is_publishing_node = models.BooleanField(verbose_name='Is publishing node', default=False, db_column='is_publishing_node')
     #rsa_public_key = models.CharField(verbose_name='RSA Public Key', max_length=200, default='', db_column='rsa_public_key')
