@@ -3,8 +3,11 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from orderer import views
 
 urlpatterns = [
-    path('pending-transactions/', views.PendingTransactionList.as_view()),
-    path('create-consensus-block/', views.create_consensus_block)
+    path('pending-transactions/', views.pending_transaction),
+    path('consensus/', views.create_consensus_block),
+    path('prepare/', views.prepare),
+    path('commit/', views.commit),
+    path('decide/', views.decide)
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns) 

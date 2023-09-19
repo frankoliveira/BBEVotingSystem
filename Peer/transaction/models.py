@@ -7,7 +7,7 @@ class PendingTransaction(models.Model):
     id = models.CharField(verbose_name='ID', primary_key=True, max_length=64, db_column='id') #hash dos atributos abaixo
     input = models.CharField(verbose_name='Data', max_length=500, db_column='input') #voto
     timestamp = models.DateTimeField(verbose_name='Timestamp', auto_now=False, db_column='timestamp') #recebimento
-    signature = models.CharField(verbose_name='ID', primary_key=True, max_length=64, db_column='signature') #peer/app e-vote
+    signature = models.CharField(verbose_name='ID', max_length=64, db_column='signature') #peer/app e-vote
     confirmed = models.BooleanField(verbose_name='Confirmed', default=False, db_column='confirmed')
     
     class Meta:

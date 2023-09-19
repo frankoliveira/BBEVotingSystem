@@ -9,7 +9,7 @@ class Block(models.Model):
     timestamp = models.DateTimeField('Timestamp', auto_now=False, db_column='timestamp') #cria a hora sozinho a cada save()
     merkle_root = models.CharField('Merkle Root', max_length=64, db_column='merkle_root') #equivale ao hash da raiz da Mekle Tree
     previous_hash = models.CharField('Previous Hash', max_length=64, db_column='previous_hash')
-    transactions = models.JSONField('Transactions', max_length=500, db_column='transactions')
+    transactions = models.CharField('Transactions', max_length=500, db_column='transactions')
     
     class Meta:
         verbose_name = 'Block'
@@ -22,11 +22,11 @@ class Block(models.Model):
     def as_dict(self):
         #block = vars(self)
         return {
-            'id': self.id,
-            'peer': self.peer,
-            'timestamp': self.timestamp.strftime("%d/%m/%Y, %H:%M:%S"),
-            'merkle_root': self.merkle_root,
-            'previous_hash': self.previous_hash
+            "id": self.id,
+            "peer": self.peer,
+            "timestamp": self.timestamp.strftime("%d/%m/%Y, %H:%M:%S"),
+            "merkle_root": self.merkle_root,
+            "previous_hash": self.previous_hash
         }
         
     def hash(self):
