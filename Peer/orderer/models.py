@@ -2,6 +2,7 @@ import json, requests
 from hashlib import sha256
 from datetime import datetime
 from typing import Union
+import time
 
 #Models
 from block.models import Block
@@ -82,7 +83,7 @@ class Orderer():
                 block = Block()
                 block.peer = str(Orderer.get_instance().peer_port)
                 block.timestamp = datetime.now()
-                block.merkle_root = ''
+                block.merkle_root = 'merkle'
                 block.previous_hash = Block.objects.last().hash()
                 block.transactions = {"transactions":[pending_transaction_serializer.data]}
                 return block
@@ -96,15 +97,26 @@ class Orderer():
         Líder inicia a eleição ao propor bloco
         '''
         new_block = Orderer.create_consensus_block()
-        block_serializer = None
+        if new_block: print('pqp')
         
         if new_block:
-            block_serializer = BlockSerializer(new_block)
+            block_serializer = BlockSerializer(instance=new_block)
+
             Orderer.get_instance().consensus_block_dict = block_serializer.data
             Orderer.prepare(block_dict=block_serializer.data)
-            Orderer.commit(commit_dict=True)
+            Orderer.commit(commit=True)
 
-        return block_serializer.data
+            Orderer.decide()
+            
+            peers = Peer.objects.filter(is_publishing_node=True)
+            for peer in peers:
+                try:
+                    url = f'http://{peer.host}:{peer.port}/decide/'
+                    requests.get(url=url)
+                except Exception as ex:
+                    print(f"erro decide: {ex}")
+            return block_serializer.data
+        return None
     
     @staticmethod
     def prepare(block_dict):
@@ -124,15 +136,17 @@ class Orderer():
                               json=message)
             except Exception as ex:
                 print(f"erro prepare: {ex}")
+        
+        print("prepare func ok")
 
     @staticmethod
-    def commit(commit_dict):
+    def commit(commit):
         '''
         Todos os peers enviam resultado da análise pós-prepare, positiva ou negativa
         '''
         message = {
             "port": Orderer.get_instance().peer_port,
-            "commit": commit_dict
+            "commit": commit
         }
 
         peers = Peer.objects.filter(is_publishing_node=True)
@@ -143,16 +157,18 @@ class Orderer():
                               json=message)
             except Exception as ex:
                 print(f"erro commit: {ex}")
+        
+        print('commit func ok')
 
     @staticmethod
     def decide():
+        block = None
         if Orderer.get_instance().consensus_positive_commits > 0:
-            block_serializer = BlockSerializer(Orderer.get_instance().consensus_block_dict)
+            block_serializer = BlockSerializer(data=Orderer.get_instance().consensus_block_dict)
             if block_serializer.is_valid():
-                block: Block = block_serializer.save()
-                print(json.loads(Block.transactions))
-        
+                block: Block = block_serializer.save()        
         Orderer.get_instance().consensus_block_dict = None
         Orderer.get_instance().consensus_positive_commits = 0
         Orderer.get_instance().consensus_negative_commits = 0
         Orderer.get_instance().consensus_decision = False
+        return block

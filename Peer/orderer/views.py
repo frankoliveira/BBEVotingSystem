@@ -11,7 +11,7 @@ from peer.models import Peer
 from transaction.serializers import PendingTransactionSerializer, TransactionBlockSerializer
 from block.serializers import BlockSerializer
 
-import json
+import json, time
 from hashlib import sha256
 import requests
 
@@ -68,9 +68,9 @@ def create_consensus_block(request, format=None):
             block_serializer_data = Orderer.propose_block()
             if block_serializer_data:
                 return Response(data=block_serializer_data, status=status.HTTP_201_CREATED)
-            return Response(data='{"response":"Não há transações pendentes"}', status=status.HTTP_200_OK)
+            return Response(data='Não há transações pendentes', status=status.HTTP_200_OK)
         except Exception as ex:
-            return Response(data=f"Erro na solicitação:{ex}", status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=f"Erro na solicitação ccb:{ex}", status=status.HTTP_400_BAD_REQUEST)
         
 #prepare/
 @api_view(['POST'])
@@ -92,12 +92,14 @@ def prepare(request, format=None):
             if block_serializer.is_valid():
                 #fazer validação
                 Orderer.get_instance().consensus_block_dict = block_serializer.data
-                commit_json = {
-                    "port": Orderer.get_instance().peer_port,
+                '''
+                commit_dict = {
                     "commit": True
                 }
-
-                Orderer.commit(commit_json=commit_json)
+                '''
+                Orderer.commit(commit=True)
+                return Response(data='ok', status=status.HTTP_200_OK)
+            return Response(block_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
         
@@ -123,11 +125,13 @@ def commit(request, format=None):
                 Orderer.get_instance().consensus_positive_commits += 1
             elif received_commit == False:
                 Orderer.get_instance().consensus_positive_commits += 1
+            return Response(data='ok', status=status.HTTP_200_OK)
         else:
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['GET'])
 def decide(request, format=None):
     if request.method == 'GET':
+        time.sleep(5)
         Orderer.get_instance().decide()
+        return Response(data='ok', status=status.HTTP_200_OK)
