@@ -9,4 +9,4 @@ class PendingTransactionSerializer(serializers.ModelSerializer):
 class TransactionBlockSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionBlock
-        fields = ['id_transaction', 'id_block', 'position']
+        fields = ['id_transaction', 'id_block', 'position', 'timestamp']

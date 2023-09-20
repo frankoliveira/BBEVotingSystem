@@ -3,12 +3,14 @@ from hashlib import sha256
 from datetime import datetime
 from typing import Union
 import time
+from rest_framework.renderers import JSONRenderer
+from rest_framework.parsers import JSONParser
+import io
 
 #Models
 from block.models import Block
-from transaction.models import PendingTransaction
+from transaction.models import PendingTransaction, TransactionBlock
 from peer.models import Peer
-
 
 #Serializers
 from block.serializers import BlockSerializer
@@ -20,9 +22,8 @@ class Orderer():
     transactions_per_block = 1
     
     consensus_block_dict = None
-    consensus_positive_commits = 0
-    consensus_negative_commits = 0
-    consensus_decision = False
+    consensus_received_commits = 0
+    consensus_is_achieved = False
 
     def __init__(self) -> None:
         pass
@@ -63,7 +64,6 @@ class Orderer():
             "transaction": pending_transction_dict
         }
 
-
         peers = Peer.objects.filter(is_publishing_node=True)
         for peer in peers:
             try:
@@ -75,17 +75,22 @@ class Orderer():
     @staticmethod
     def create_consensus_block() -> Block:
         try:
-            pending_transaction = PendingTransaction.objects.last()
+            pending_transactions = None
+            pending_transactions = PendingTransaction.objects.filter(confirmed=False)
+            oldest_pending_transactions = None
+            if pending_transactions:
+                oldest_pending_transactions = pending_transactions.order_by("timestamp")[0]
 
-            if pending_transaction:
-                pending_transaction_serializer = PendingTransactionSerializer(pending_transaction)
-
+            if oldest_pending_transactions:
+                pending_transaction_serializer = PendingTransactionSerializer(instance=oldest_pending_transactions)
+                
                 block = Block()
                 block.peer = str(Orderer.get_instance().peer_port)
                 block.timestamp = datetime.now()
                 block.merkle_root = 'merkle'
                 block.previous_hash = Block.objects.last().hash()
-                block.transactions = {"transactions":[pending_transaction_serializer.data]}
+                block.transactions = json.dumps([pending_transaction_serializer.data])
+
                 return block
             return None
         except Exception as ex:
@@ -96,36 +101,36 @@ class Orderer():
         '''
         Líder inicia a eleição ao propor bloco
         '''
-        new_block = Orderer.create_consensus_block()
-        if new_block: print('pqp')
+        Orderer.get_instance().consensus_block_dict = None
+        Orderer.get_instance().consensus_received_commits = 0
+        Orderer.get_instance().consensus_is_achieved = False
         
+        new_block = Orderer.create_consensus_block()
+
         if new_block:
             block_serializer = BlockSerializer(instance=new_block)
-
+            print(f'bloco original: {new_block.transactions}')
+            print(f'bloco serializado: {block_serializer.data}')
             Orderer.get_instance().consensus_block_dict = block_serializer.data
-            Orderer.prepare(block_dict=block_serializer.data)
-            Orderer.commit(commit=True)
+            Orderer.send_prepare(block_dict=block_serializer.data)
+            Orderer.send_commit(commit=True)
 
-            Orderer.decide()
-            
-            peers = Peer.objects.filter(is_publishing_node=True)
-            for peer in peers:
-                try:
-                    url = f'http://{peer.host}:{peer.port}/decide/'
-                    requests.get(url=url)
-                except Exception as ex:
-                    print(f"erro decide: {ex}")
+            #Orderer.decide()
+            #havia aqui a requisição http decide
+
             return block_serializer.data
         return None
     
     @staticmethod
-    def prepare(block_dict):
+    def send_prepare(block_dict):
         '''
         Líder anuncia novo bloco para os peers
         '''
         message = {
             "port": Orderer.get_instance().peer_port,
-            "block": block_dict
+            "prepare": {
+                "block": block_dict
+            }
         }
 
         peers = Peer.objects.filter(is_publishing_node=True)
@@ -140,7 +145,7 @@ class Orderer():
         print("prepare func ok")
 
     @staticmethod
-    def commit(commit):
+    def send_commit(commit):
         '''
         Todos os peers enviam resultado da análise pós-prepare, positiva ou negativa
         '''
@@ -163,12 +168,33 @@ class Orderer():
     @staticmethod
     def decide():
         block = None
-        if Orderer.get_instance().consensus_positive_commits > 0:
+        if Orderer.get_instance().consensus_received_commits > 0:
             block_serializer = BlockSerializer(data=Orderer.get_instance().consensus_block_dict)
+
             if block_serializer.is_valid():
-                block: Block = block_serializer.save()        
-        Orderer.get_instance().consensus_block_dict = None
-        Orderer.get_instance().consensus_positive_commits = 0
-        Orderer.get_instance().consensus_negative_commits = 0
-        Orderer.get_instance().consensus_decision = False
+                block: Block = block_serializer.save()
+
+                #confirmação das transações pendentes
+                transactions_list: list = json.loads(block.transactions)
+
+                for i in range(len(transactions_list)):
+                    transaction_dict = transactions_list[i]
+                    transaction = PendingTransaction.objects.get(pk=transaction_dict["id"])
+                    transaction.confirmed = True
+                    transaction.save()
+
+                    #referência entre transação e bloco
+                    transaction_block = TransactionBlock()
+                    transaction_block.id_transaction = transaction.id
+                    transaction_block.id_block = block.id
+                    transaction_block.position = i
+                    transaction_block.timestamp = datetime.now()
+                    transaction_block.save()
+
+                print("bloco criado pelo consenso")
+
+            Orderer.get_instance().consensus_block_dict = None
+            Orderer.get_instance().consensus_received_commits = 0
+            Orderer.get_instance().consensus_is_achieved = True
+
         return block

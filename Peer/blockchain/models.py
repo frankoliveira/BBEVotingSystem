@@ -54,3 +54,7 @@ class Blockchain:
         
         return True
 
+    @staticmethod
+    def create_merkle_root(transactions: list):
+        pass
+            

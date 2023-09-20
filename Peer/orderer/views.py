@@ -1,5 +1,3 @@
-#from .messenger import MessageConfiguration, MessageSender, MessageReceiver
-
 #Models
 from .models import Orderer
 from transaction.models import PendingTransaction, TransactionBlock
@@ -11,13 +9,10 @@ from peer.models import Peer
 from transaction.serializers import PendingTransactionSerializer, TransactionBlockSerializer
 from block.serializers import BlockSerializer
 
+#Other
 import json, time
 from hashlib import sha256
-import requests
-
-from django.shortcuts import render
 from django.http import Http404
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from datetime import datetime
@@ -76,9 +71,13 @@ def create_consensus_block(request, format=None):
 @api_view(['POST'])
 def prepare(request, format=None):
     """
-    Recebe o novo bloco na fase de prepare
+    Recebe o novo bloco do Líder na fase de prepare
     """
     if request.method == 'POST':
+        Orderer.get_instance().consensus_block_dict = None
+        Orderer.get_instance().consensus_received_commits = 0
+        Orderer.get_instance().consensus_is_achieved = False
+
         port = request.data["port"] #usando porta para diferenciar entre peers da mesma maquina
         remote_peer = None
 
@@ -88,16 +87,13 @@ def prepare(request, format=None):
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
 
         if remote_peer.is_publishing_node:
-            block_serializer = BlockSerializer(data=request.data["block"])
+            block_serializer = BlockSerializer(data=request.data["prepare"]["block"])
+            
             if block_serializer.is_valid():
+                print(f'request com o bloco do prepare: {request.data["prepare"]["block"]}')
                 #fazer validação
                 Orderer.get_instance().consensus_block_dict = block_serializer.data
-                '''
-                commit_dict = {
-                    "commit": True
-                }
-                '''
-                Orderer.commit(commit=True)
+                Orderer.send_commit(commit=True)
                 return Response(data='ok', status=status.HTTP_200_OK)
             return Response(block_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -121,16 +117,23 @@ def commit(request, format=None):
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
         
         if remote_peer.is_publishing_node:
-            if received_commit == True:
-                Orderer.get_instance().consensus_positive_commits += 1
-            elif received_commit == False:
-                Orderer.get_instance().consensus_positive_commits += 1
+            if not Orderer.get_instance().consensus_is_achieved:
+                if received_commit == True:
+                    #validar commit
+                    Orderer.get_instance().consensus_received_commits += 1
+
+                if Orderer.get_instance().consensus_received_commits > 0:
+                    Orderer.get_instance().decide()
+
             return Response(data='ok', status=status.HTTP_200_OK)
         else:
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 def decide(request, format=None):
+    '''
+    no momento está em desuso
+    '''
     if request.method == 'GET':
         time.sleep(5)
         Orderer.get_instance().decide()

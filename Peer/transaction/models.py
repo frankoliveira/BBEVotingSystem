@@ -13,7 +13,7 @@ class PendingTransaction(models.Model):
     class Meta:
         verbose_name = 'Pending Transaction'
         verbose_name_plural = 'Pending Transactions'
-        ordering = ['id']
+        ordering = ['timestamp']
 
     def __str__(self) -> str:
         return str(self.id)
@@ -24,4 +24,13 @@ class TransactionBlock(models.Model):
     '''
     id_transaction = models.CharField(verbose_name='ID', primary_key=True, max_length=64, db_column='id_transaction')
     id_block = models.IntegerField(verbose_name='ID Block', default=0, db_column='id_block')
-    position = models.IntegerField(verbose_name='ID Block', default=0, db_column='position') 
+    position = models.IntegerField(verbose_name='Position', default=0, db_column='position')
+    timestamp = models.DateTimeField(verbose_name='Timestamp', auto_now=False, db_column='timestamp') 
+
+    class Meta:
+        verbose_name = 'TransactionBlock'
+        verbose_name_plural = 'TransactionsBlock'
+        ordering = ['timestamp']
+
+    def __str__(self) -> str:
+        return str(self.id_transaction)
