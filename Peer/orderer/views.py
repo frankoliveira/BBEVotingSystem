@@ -4,6 +4,7 @@ from transaction.models import PendingTransaction, TransactionBlock
 from block.models import Block
 from blockchain.models import Blockchain
 from peer.models import Peer
+from security.models import CustomRSA
 
 #Serializers
 from transaction.serializers import PendingTransactionSerializer, TransactionBlockSerializer

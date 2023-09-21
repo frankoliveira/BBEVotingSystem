@@ -11,6 +11,7 @@ import io
 from block.models import Block
 from transaction.models import PendingTransaction, TransactionBlock
 from peer.models import Peer
+from security.models import CustomRSA
 
 #Serializers
 from block.serializers import BlockSerializer
@@ -24,6 +25,8 @@ class Orderer():
     consensus_block_dict = None
     consensus_received_commits = 0
     consensus_is_achieved = False
+
+    rsa_private_key = CustomRSA.load_pem_private_key_from_file(path='rsa_keys/private_key.pem')
 
     def __init__(self) -> None:
         pass
