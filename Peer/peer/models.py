@@ -15,3 +15,11 @@ class Peer(models.Model):
 
     def __str__(self) -> str:
         return str(self.port)
+    
+    @staticmethod
+    def get_peer_by_port(port: int):
+        try:
+            peer = Peer.objects.get(port=port)
+            return peer
+        except Peer.DoesNotExist:
+            return None

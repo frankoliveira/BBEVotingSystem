@@ -159,6 +159,7 @@ print(f'verification: {verification}')
 """
 
 """
+#DEMOSTRAÇÃO PAILLIER
 from phe import paillier, PaillierPrivateKey, PaillierPublicKey, EncryptedNumber
 
 class PaillierHomomorphicEncryptionManager():

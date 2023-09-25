@@ -10,8 +10,5 @@ class BlockModelAdmin(admin.ModelAdmin):
         ('Transações', {'fields': ('transactions',)})
     )
     
-    def dict(self, instance):
-        return instance.as_dict()
-    
     def hash(self, instance):
         return instance.hash()

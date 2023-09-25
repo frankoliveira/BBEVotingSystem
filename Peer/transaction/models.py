@@ -1,22 +1,41 @@
 from django.db import models
 
-class PendingTransaction(models.Model):
+class Transaction(models.Model):
     '''
-    Unconfirmed transactions
+    Transactions
     '''
     id = models.CharField(verbose_name='ID', primary_key=True, max_length=64, db_column='id') #hash dos atributos abaixo
     input = models.CharField(verbose_name='Data', max_length=500, db_column='input') #voto
     timestamp = models.DateTimeField(verbose_name='Timestamp', auto_now=False, db_column='timestamp') #recebimento
-    signature = models.CharField(verbose_name='ID', max_length=64, db_column='signature') #peer/app e-vote
     confirmed = models.BooleanField(verbose_name='Confirmed', default=False, db_column='confirmed')
     
     class Meta:
-        verbose_name = 'Pending Transaction'
-        verbose_name_plural = 'Pending Transactions'
+        verbose_name = 'Transaction'
+        verbose_name_plural = 'Transactions'
         ordering = ['timestamp']
 
     def __str__(self) -> str:
         return str(self.id)
+    
+    @staticmethod
+    def check_if_exist(id: str) -> bool:
+        try:
+            peer = Transaction.objects.get(id=id)
+            return True
+        except Transaction.DoesNotExist:
+            return False
+    
+    @staticmethod
+    def get_unconfirmed_transactions(max_quantity: int):
+        unconfirmed_transactions = Transaction.objects.filter(confirmed=False)
+        
+        if unconfirmed_transactions:
+            ordered_transactions = unconfirmed_transactions.order_by("timestamp")
+            total = len(ordered_transactions)
+            quantity_to_return = total if total < max_quantity else max_quantity
+            return ordered_transactions[:quantity_to_return]
+        else:
+            return None
     
 class TransactionBlock(models.Model):
     '''
@@ -34,3 +53,11 @@ class TransactionBlock(models.Model):
 
     def __str__(self) -> str:
         return str(self.id_transaction)
+    
+    @staticmethod
+    def check_if_exist(id: str) -> bool:
+        try:
+            transaction_block = TransactionBlock.objects.get(id_transaction=id)
+            return True
+        except TransactionBlock.DoesNotExist:
+            return False

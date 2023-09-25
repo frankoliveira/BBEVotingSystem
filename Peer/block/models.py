@@ -19,8 +19,7 @@ class Block(models.Model):
     def __str__(self) -> str:
         return str(self.pk)
     
-    def as_dict(self):
-        #block = vars(self)
+    def block_header_as_dict(self):
         return {
             "id": self.id,
             "peer": self.peer,
@@ -30,6 +29,7 @@ class Block(models.Model):
         }
         
     def hash(self):
-        block_string = json.dumps(self.as_dict(), sort_keys=True)
+        block_string = json.dumps(self.block_header_as_dict(), sort_keys=True)
         block_hash = sha256(block_string.encode()).hexdigest()
         return block_hash
+    
