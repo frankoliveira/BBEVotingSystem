@@ -18,11 +18,13 @@ from block.serializers import BlockSerializer
 from transaction.serializers import TransactionSerializer
 
 class Orderer():
-
     instance = None
+    
     def __init__(self) -> None:
-        self.peer_port = 8000
+        self.peer_id = '127.0.0.1:8000'
         self.transactions_per_block = 2
+
+        self.consensus_leader_id = '127.0.0.1:8000'
         self.consensus_block_dict = None
         self.consensus_received_commits = 0
         self.consensus_is_achieved = False
@@ -47,7 +49,7 @@ class Orderer():
     @staticmethod
     def broadcast_pending_transaction(transction_dict: dict) -> None:
         message = {
-            "port": Orderer.get_instance().peer_port,
+            "peer_id": Orderer.get_instance().peer_id,
             "transaction": transction_dict
         }
 
@@ -65,9 +67,8 @@ class Orderer():
 
         if unconfirmed_transactions!=None:
             transactions_serializer =  TransactionSerializer(instance=unconfirmed_transactions, many=True)
-
             block = Block()
-            block.peer = str(Orderer.get_instance().peer_port)
+            block.peer = Orderer.get_instance().peer_id
             block.timestamp = datetime.now()
             block.merkle_root = 'merkle'
             block.previous_hash = Block.objects.last().hash()
@@ -99,7 +100,7 @@ class Orderer():
         Líder anuncia novo bloco para os peers
         '''
         message = {
-            "port": Orderer.get_instance().peer_port,
+            "peer_id": Orderer.get_instance().peer_id,
             "block": block_dict
         }
 
@@ -120,7 +121,7 @@ class Orderer():
         Envia o commit com o bloco
         '''
         message = {
-            "port": Orderer.get_instance().peer_port,
+            "peer_id": Orderer.get_instance().peer_id,
             "block":  Orderer.get_instance().consensus_block_dict
         }
 

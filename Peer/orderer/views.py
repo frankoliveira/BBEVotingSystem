@@ -27,7 +27,7 @@ def pending_transaction(request, format=None):
     '''
     if request.method == 'POST':
         #remote_ip = get_remote_ip(request)
-        remote_peer: Peer = Peer.get_peer_by_port(port=request.data["port"])
+        remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
         
         if remote_peer==None:
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
@@ -78,8 +78,8 @@ def prepare(request, format=None):
     Recebe o novo bloco do Líder na fase de prepare
     """
     if request.method == 'POST':
-        remote_peer: Peer = Peer.get_peer_by_port(port=request.data["port"])
-        if remote_peer!=None and remote_peer.is_publishing_node:
+        remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+        if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.id==Orderer.get_instance().consensus_leader_id:
             Orderer.get_instance().consensus_block_dict = None
             Orderer.get_instance().consensus_received_commits = 0
             Orderer.get_instance().consensus_is_achieved = False
@@ -101,8 +101,15 @@ def commit(request, format=None):
     Recebe resultado dos demais peers
     '''
     if request.method == 'POST':
-        remote_peer: Peer = Peer.get_peer_by_port(port=request.data["port"])
+        remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
         if remote_peer!=None and remote_peer.is_publishing_node:
+            #adicionar condição para receber o bloco do líder
+            #caso não tenha recebido o bloco no prepare
+            if remote_peer.id==Orderer.get_instance().consensus_leader_id and Orderer.get_instance().consensus_block_dict==None:
+                Orderer.get_instance().consensus_block_dict = request.data["block"]
+                Orderer.send_commit()
+                Orderer.get_instance().decide()
+
             #block_commit = request.data["block"]
             if Orderer.get_instance().consensus_is_achieved == False:
                 Orderer.get_instance().consensus_received_commits += 1
