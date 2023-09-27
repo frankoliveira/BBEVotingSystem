@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'users',
     'voting',
     'crispy_forms',
+    'security',
 
     'django.contrib.admin',
     'django.contrib.auth',

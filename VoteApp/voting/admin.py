@@ -4,7 +4,7 @@ from voting.models import Election, Question, Option, ElectionResult
 # Register your models here.
 @admin.register(Election)
 class ElectionModelAdmin(admin.ModelAdmin):
-    list_display = ('id', 'id_author', 'tittle') 
+    list_display = ('id', 'tittle') 
 
 @admin.register(Question)
 class QuestionModelAdmin(admin.ModelAdmin):

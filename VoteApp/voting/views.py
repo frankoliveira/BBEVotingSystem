@@ -32,3 +32,42 @@ def votar():
 #admin pode editar eleição enquanto não estiver ocorrendo
 #admin pode ver eleições que criou
 #admin pode adicionar peer e ver os peers da rede p2p
+
+#Other
+import json, time
+from hashlib import sha256
+from django.http import Http404
+from rest_framework.response import Response
+from rest_framework import status
+from datetime import datetime
+from rest_framework.decorators import api_view
+
+#Model
+from voting.models import Election
+
+#Serializer
+from voting.serializers import ElectionSerializer
+
+#inicia o consenso
+@api_view(['GET']) 
+def get_election(request, format=None):
+    '''
+    Essa lógica será executada de alguma forma pelo líder
+    Aqui se inicia a proposta de bloco pelo líder
+    '''
+    if request.method == 'GET':
+        try:
+            election = Election.objects.last()
+            if election:
+                serializer = ElectionSerializer(instance=election)
+                return Response(data=serializer.data, status=status.HTTP_200_OK)
+            
+            return Response(data='Não há eleições', status=status.HTTP_200_OK)
+        except Exception as ex:
+            return Response(data=f"Erro na solicitação ccb:{ex}", status=status.HTTP_400_BAD_REQUEST)
+
+from rest_framework import generics
+
+class ElectionDetail(generics.RetrieveAPIView):
+    queryset = Election.objects.all()
+    serializer_class = ElectionSerializer

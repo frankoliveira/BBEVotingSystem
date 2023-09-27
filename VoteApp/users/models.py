@@ -29,8 +29,8 @@ class UsuarioManager(BaseUserManager):
         return self._create_user(email, password, **extra_fields) 
 
 class CustomUser(AbstractUser):
-    email = models.EmailField(verbose_name='e_mail', unique=True, help_text="E-mail")
-    is_staff = models.BooleanField(verbose_name='member', default=True)
+    email = models.EmailField(verbose_name='E-mail', unique=True, help_text='E-mail', db_column='email')
+    is_staff = models.BooleanField(verbose_name='Member', default=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
