@@ -12,12 +12,7 @@ class Election(models.Model):
     last_change = models.DateTimeField(verbose_name='Última Alteração', auto_now=True, db_column='ultima_alteracao')
     #eligible_voters = models.CharField('Eleitores', max_length=100, db_column='eleitores')
     #eligible_voters = models.ManyToManyField(verbose_name='Eleitores', to=CustomUser, db_table='election_voters') 
-    phe_public_key = models.CharField(verbose_name='Chave Pública (Paillier)', max_length=500, db_column='phe_chave_publica')
-
-    def create_vote():
-        #verificar prazo da eleição
-        #verificar se eleitor é válido
-        pass
+    phe_public_key = models.CharField(verbose_name='Chave Pública (Paillier)', default='', max_length=500, db_column='phe_chave_publica')
 
     class Meta:
         verbose_name = 'Eleição'
@@ -26,6 +21,10 @@ class Election(models.Model):
 
     def __str__(self) -> str:
         return self.tittle
+    
+    @staticmethod
+    def check_voting_permission(id_election: int, id_user: int):
+        return ElectionVoter.objects.filter(id_election=id_election, id_user=id_user).exists()
 
 class Question(models.Model):
     id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='questions', db_column='id_eleicao')
@@ -62,6 +61,9 @@ class Option(models.Model):
         ordering = ['id']
 
 class ElectionVoter(models.Model):
+    '''
+    Represents the eligible election voters.
+    '''
     id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='election_voters', db_column='id_eleicao')
     id_user = models.ForeignKey(CustomUser, on_delete=models.DO_NOTHING, db_column='id_autor')
     has_voted = models.BooleanField(verbose_name="Votou", default=False, db_column='votou')

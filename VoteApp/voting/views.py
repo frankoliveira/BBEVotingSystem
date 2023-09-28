@@ -1,15 +1,19 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from voting.forms import ElectionCreateForm
 from django.contrib import messages
+from datetime import datetime
 
 # Create your views here.
 def criar_eleicao(request):
     if request.method == 'POST':
+        print(request.POST)
         election_form = ElectionCreateForm(request.POST)
         if election_form.is_valid():
             election = election_form.save(commit=False)
-            election.author = request.user
+            election.id_author = request.user
+            election.creation = datetime.now()
             election.save()
+            return redirect('index')
         messages.error(request, "Erro ao criar eleição")
     form = ElectionCreateForm()
     return render(request=request, template_name="election_form.html", context={"election_form": form})
@@ -71,3 +75,13 @@ from rest_framework import generics
 class ElectionDetail(generics.RetrieveAPIView):
     queryset = Election.objects.all()
     serializer_class = ElectionSerializer
+
+#inicia o consenso
+@api_view(['POST']) 
+def check_voting_permission(request, format=None):
+    if request.method == 'POST':
+        id_election = request.data['id_election']
+        id_user = request.data['id_user']
+        result = Election.check_voting_permission(id_election=id_election, id_user=id_user)
+
+        return Response(data=f'Resultad: {result}', status=status.HTTP_200_OK)
