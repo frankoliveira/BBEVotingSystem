@@ -1,15 +1,25 @@
-{% extends 'base.html' %}
-{% block content %}
-{% load crispy_forms_tags %}       
-	<!--REGISTER-->
-	<div class="container form-register py-5" autocomplete="off">
-		<h1>Registrar-se</h1>
-		<form method="POST">
-			{% csrf_token %}
-			{{ register_form.as_p }}
-			<button class="btn btn-primary" type="submit">Registrar</button>
-		</form>
-		<p class="text-center">Se já possui conta, <a href="http://127.0.0.1:8000/contas/login/">clique aqui</a></p>
-	</div>
-    
-{% endblock %}
+{% load bootstrap4 %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro</title>
+    {% bootstrap_css %}
+</head>
+<body>
+    <div class="container">
+        <h1>Cadastro</h1>
+        {% bootstrap_messages %}
+
+        <form action="{% url 'registrar' %}" method="post" class="form" autocomplete="off">
+            {% csrf_token %} <!--segurança-->
+            {% bootstrap_form register_form %} <!--aplica o bootstrap ao formulário-->
+            {% buttons %}
+                <button type="submit" class="btn-primary">Registrar</button>
+            {% endbuttons %}
+        </form>
+    </div>
+    {% bootstrap_javascript jquery='full' %}
+</body>
+</html>

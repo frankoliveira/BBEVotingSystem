@@ -23,6 +23,7 @@ class ElectionSerializer(serializers.ModelSerializer):
     #questions = serializers.PrimaryKeyRelatedField(many=True, queryset=Question.objects.all()) #retorna o id das questões
     #questions = serializers.PrimaryKeyRelatedField(many=True, read_only=True) #retorna o id das questões
     election_voters = ElectionVoterIdUserSerializer(many=True, read_only=True)
+    
 
     class Meta:
         model = Election

@@ -1,14 +1,32 @@
 {% extends 'base.html' %}
 {% block content %}
-    <div class="container">
-        <h1>Voting</h1>
-        {% if user.is_anonymous %}
-            <a class="btn btn-primary" href="{% url 'login' %}">Login</a>
-        {% else %}
-            <div class="alert alert-primary" role="alert">
-                Seja bem-vindo(a), {{ user.get_full_name }}!
-            </div>
-            <a class="btn btn-primary" href="{% url 'logout' %}">Logout</a>
+    <div class="container-fluid" style="background-color:burlywood;">
+        <h1>B2V - Eleição Eletrônica</h1>
+        {% if user.is_authenticated %}
+        <div>
+            <p>
+                Sistema Eleitoral com Blockchain.
+            </p>
+        </div>
+        <div>
+            <ul>
+                <li>
+                    <a class="nav-link" href="{% url 'criar-eleicao' %}">
+                        Criar Eleição
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link" href="{% url 'eleicoes' %}">
+                        Eleições em andamento
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link" href="#">
+                        Eleições que participei
+                    </a>
+                </li>
+            </ul>
+        </div>
         {% endif %}
     </div>
 {% endblock %}

@@ -2,14 +2,53 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Voting</title>
+    <title>B2V - Eleição Eletrônica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit-no">
     <link rel="icon" href="https://www.geekuniversity.com.br/static/images/favicon.4fcb819d32bf.icon">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
     <link href="https://getbootstrap.com/docs/4.0/examples/sign-in/signin.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
+    <header class="fixed-top">
+        <nav class="navbar navbar-expand-md bg-inverse scrolling-navbar  alert-primary">
+            <div class="container">
+                {% if user.is_authenticated %}
+                    <span>Bem-vindo(a), <b>{{ user.get_full_name }}</b>!</span>
+                {% endif %}
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                    <i class="lni-menu">teste</i>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarCollapse">
+                    <ul class="navbar-nav mr-auto w-100 justify-content-end clearfix">
+                        <li class="nav-item active">
+                            <a class="nav-link" href="{% url 'index' %}">
+                                <b>Início</b>
+                            </a>
+                        </li>
+    
+                        {% if user.is_anonymous %}
+                        <li class="nav-item"></li>
+                            <a class="nav-link" href="{% url 'login' %}"><b>Entrar</b></a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'logout' %}"><b>Sair</b></a>
+                        </li>
+                        {% endif %}
+                  
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
     {% block content %}{% endblock %}
+
+    <footer class="alert-primary text-center text-white fixed-bottom" style="height: 35px;">
+        <p style="color: black; margin: 0;">&copy; {% now 'Y' %} Desenvolvido por Franklin</p>
+    </footer>
+
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <scrip src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></scrip>
 </body>

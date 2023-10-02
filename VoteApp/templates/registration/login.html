@@ -11,8 +11,10 @@
         <label for="password" class="sr-only">Senha</label>
         <input type="password" id="password" name="password" class="form-control" placeholder="Informe sua senha" required>
 
+        <div>
+            <p>Não possui conta? Clique <a href="{% url 'registrar' %}">aqui</a></p>
+        </div>
         <button class="btn btn-lg btn-primary btn-block" type="submit">Entrar</button>
-        <!--<a href="http://127.0.0.1:8000/contas/login/">Registrar-se</a>-->
         
         <p class="mt-5 mb-3 text-muted">&copy; {% now 'Y' %}</p>
     </form>
