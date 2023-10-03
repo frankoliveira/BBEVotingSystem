@@ -25,6 +25,14 @@ class Election(models.Model):
     @staticmethod
     def check_voting_permission(id_election: int, id_user: int):
         return ElectionVoter.objects.filter(id_election=id_election, id_user=id_user).exists()
+    
+    @staticmethod
+    def get_election_by_id(id_election: int):
+        try:
+            election = Election.objects.get(id=id_election)
+            return election
+        except Election.DoesNotExist:
+            return None
 
 class Question(models.Model):
     id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='questions', db_column='id_eleicao')
