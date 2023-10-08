@@ -1,21 +1,45 @@
 {% extends 'base.html' %}
+
 {% block content %}
-    <form class="form-signin" method="post" autocomplete="off">
-        {% csrf_token %}
-        <img class="mb-4" src="https://www.geekuniversity.com.br/static/images/favicon.4fcb819d32bf.ico" alt="" width="72" height="72">
-        <h1 class="h3 mb-3 font-weight-normal">Entrar no Sistema</h1>
+<div class="container-fluid min-vh-100 d-flex flex-column">
+    <div class="row flex-grow-1 align-items-center justify-content-center"> <!--align-x-axis // justify-y-axis-->
+        <div class="col-10 col-lg-4">
+            <form class="form-signin" method="post" autocomplete="off">
+                {% csrf_token %}
+                <h1 class="h3 mb-3 font-weight-normal">Entrar no Sistema</h1>
+                <div class="form-row mb-3">
+                    <div class="form-group col-md-12">
+                        <label for="username" class="sr-only">E-mail</label>
+                        <input type="email" id="username" name="username" class="form-control" placeholder="Informe seu e-mail" required autofocus>
+                    </div>
+                </div>
 
-        <label for="username" class="sr-only">E-mail</label>
-        <input type="email" id="username" name="username" class="form-control" placeholder="Informe seu e-mail" required autofocus>
+                <div class="form-row mb-3">
+                    <div class="form-group col-md-12">
+                        <label for="password" class="sr-only">Senha</label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Informe sua senha" required>
+                    </div>
+                </div>
 
-        <label for="password" class="sr-only">Senha</label>
-        <input type="password" id="password" name="password" class="form-control" placeholder="Informe sua senha" required>
+                <div class="form-row">
+                    <div class="form-group col-md-12">
+                        <p>Não possui conta? Clique <a href="{% url 'registrar' %}">aqui</a></p>
+                    </div>
+                </div>
 
-        <div>
-            <p>Não possui conta? Clique <a href="{% url 'registrar' %}">aqui</a></p>
+                <div class="row justify-content-center">
+                    <div class="col-md-10">
+                        <button class="btn btn-lg btn-primary btn-block w-100" type="submit">Entrar</button>
+                    </div>
+                </div>
+
+                <div class="form-row text-center">
+                    <div class="form-group col-md-12">
+                        <p class="mt-5 mb-3 text-muted">&copy; {% now 'Y' %}</p>
+                    </div>
+                </div>
+            </form>
         </div>
-        <button class="btn btn-lg btn-primary btn-block" type="submit">Entrar</button>
-        
-        <p class="mt-5 mb-3 text-muted">&copy; {% now 'Y' %}</p>
-    </form>
+    </div>
+</div>
 {% endblock %}

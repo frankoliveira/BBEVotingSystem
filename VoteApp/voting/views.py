@@ -22,6 +22,12 @@ from hashlib import sha256
 from datetime import datetime
 
 @login_required
+def index(request):
+    if request.method == 'GET':
+        return render(request=request, template_name="index.html")
+
+
+@login_required
 def criar_eleicao(request):
     if request.method == 'POST':
         print(request.POST)
@@ -49,9 +55,10 @@ def election_list(request, format=None):
     
 @login_required            
 def election_vote(request, pk, format=None):
-    #if not request.user.is_authenticated:
-    #    return redirect('login')
-
+    '''
+    Funcion View para acesso à página de votação.
+    GET para acessar formulário e POST para enviar o voto.
+    '''
     election = Election.get_election_by_id(id_election=pk)
 
     if election==None:

@@ -1,0 +1,36 @@
+<div class="row text-bg-primary">
+    <div class="col">
+        <header>
+            <nav class="navbar navbar-expand-md bg-inverse scrolling-navbar alertprimary">
+                <div class="container">
+                    {% if user.is_authenticated %}
+                        <span>Bem-vindo(a), <b>{{ user.get_full_name }}</b>!</span>
+                    {% endif %}
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                        <i class="lni-menu">teste</i>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarCollapse">
+                        <ul class="navbar-nav mr-auto w-100 justify-content-end clearfix">
+                            <li class="nav-item active">
+                                <a class="nav-link" href="{% url 'index' %}">
+                                    <b>Início</b>
+                                </a>
+                            </li>
+            
+                            {% if user.is_anonymous %}
+                            <li class="nav-item"></li>
+                                <a class="nav-link" href="{% url 'login' %}"><b>Entrar</b></a>
+                            </li>
+                            {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'logout' %}"><b>Sair</b></a>
+                            </li>
+                            {% endif %}
+                        
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </header>
+    </div>
+</div>
