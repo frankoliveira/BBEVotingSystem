@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
-    <div>
+<div class="row flex-grow-1 align-items-center justify-content-center">
+    <main class="col">
         <h1>B2V - Eleição Eletrônica</h1>
         {% if user.is_authenticated %}
         <div>
@@ -28,5 +29,6 @@
             </ul>
         </div>
         {% endif %}
-    </div>
+    </main>
+</div>
 {% endblock %}

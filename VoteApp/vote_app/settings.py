@@ -138,6 +138,6 @@ AUTH_USER_MODEL = 'users.CustomUser' #utilizando um usuário de autenticação c
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = 'index' #redireciona o usuário para a página especificada após efetuar login
-LOGOUT_REDIRECT_URL = 'index' #redireciona o usuário para a página especificada após efetuar logout
+LOGOUT_REDIRECT_URL = 'login' #redireciona o usuário para a página especificada após efetuar logout
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
