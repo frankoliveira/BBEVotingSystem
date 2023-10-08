@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container-fluid" style="padding: 0;">
+<div class="row flex-grow-1 align-items-center justify-content-center">
+    <main class="col">
     
     <table class="table table-primary table-hover table-bordered">
         <thead>
@@ -31,6 +32,7 @@
             {% endfor %}
         </tbody>
       </table>
+    </main>
 </div>
 
 {% endblock %}
