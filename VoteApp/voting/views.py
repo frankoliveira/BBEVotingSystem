@@ -66,7 +66,7 @@ def election_vote(request, pk, format=None):
         return redirect('eleicoes')
 
     if Election.check_voting_permission(id_election=pk, id_user=int(request.user.id))==False:
-        messages.warning(request, 'Você não faz parte do grupo de eleitores da eleição!')
+        messages.warning(request, 'Você não faz parte do grupo de eleitores desta eleição!')
         return redirect('eleicoes')
         
     if request.method == 'GET':

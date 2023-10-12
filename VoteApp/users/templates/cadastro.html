@@ -1,11 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
+<div class="row flex-grow-1 align-items-center justify-content-center mt-5 mb-5"> <!--align-x-axis // justify-y-axis-->
+    <main class="col-10 col-lg-5 card pt-5 pb-5" style="background-color:aliceblue;">
     <form method="post" autocomplete="off">
         {% csrf_token %}
         <h1 class="h3 mb-3 font-weight-normal">Cadastro</h1>
 
-		<div class="form-row">
-			<div class="form-group col-md-6">
+		<div class="row">
+			<div class="col">
 				<label for="{{register_form.first_name.id_for_label}}"><b>Primeiro Nome:</b></label>
                 {% if register_form.first_name.errors %}
                     <ul>
@@ -16,9 +18,9 @@
                 {% endif %}
         		<input type="text" id="{{register_form.first_name.id_for_label}}" name="{{register_form.first_name.id_for_label}}" class="form-control" placeholder="Primeiro nome" required>
                 <p style="color: blue;">{{ register_form.first_name.help_text }}</p>
-                <h2>{{ register_form.first_name.value }}</h2>
+                <!--<h2>{{ register_form.first_name.value }}</h2>-->
 			</div>
-            <div class="form-group col-md-6">
+            <div class="col">
 				<label for="{{register_form.last_name.id_for_label}}"><b>Último Nome:</b></label>
                 {% if register_form.last_name.errors %}
                     <ul>
@@ -32,8 +34,8 @@
 			</div>
 		</div>
 
-        <div class="form-row">
-            <div class="form-group col-md-12">
+        <div class="row">
+            <div class="col">
 				<label for="{{register_form.username.id_for_label}}"><b>E-mail:</b></label>
                 {% if register_form.username.errors %}
                     <ul>
@@ -47,8 +49,8 @@
 			</div>
 		</div>
 
-        <div class="form-row">
-            <div class="form-group col-md-12">
+        <div class="row">
+            <div class="col">
                 <label for="{{register_form.password1.id_for_label}}"><b>Senha:</b></label>
                 {% if register_form.password1.errors %}
                     <ul>
@@ -61,8 +63,8 @@
                 <p>{{ register_form.password1.help_text }}</p>
             </div>
 		</div>
-        <div class="form-row">
-            <div class="form-group col-md-12">
+        <div class="row">
+            <div class="col">
                 <label for="{{register_form.password2.id_for_label}}"><b>Repita a Senha:</b></label>
                 {% if register_form.password2.errors %}
                     <ul>
@@ -78,11 +80,13 @@
 
         <p>{{ register_form.non_field_errors }}</p>
 
-        <div class="form-row">
-			<div class="form-group col-md-6">
-				<button class="btn btn-lg btn-primary btn-block" type="submit">Concluir</button>
+        <div class="row justify-content-center">
+			<div class="col-10">
+				<button class="btn btn-lg btn-primary btn-block w-100" type="submit">Concluir</button>
 			</div>
 		</div>
 
     </form>
+    </main>
+</div>
 {% endblock %}
