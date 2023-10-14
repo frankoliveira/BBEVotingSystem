@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row flex-grow-1 align-items-center justify-content-center">
+    <main class="col">
+        <h1>{{ election.tittle }}</h1>
+        <div>
+            <h3>{{ election.description }}</h3>
+        </div>
+        <hr>
+
+        {% for position in election.positions %}
+        <h4>Candidaturas para {{ position.description }}</h4>
+        <table class="table table-primary table-hover table-bordered">
+            <thead>
+                <tr>
+                <th scope="col">#</th>
+                <th scope="col">Número</th>
+                <th scope="col">Nome</th>
+                <th scope="col">Descrição</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for candidacy in position.candidacies %}
+                <tr class="table-info">
+                    <th scope="row">{{ election.id }}</th>
+                    <td>{{ candidacy.number }}</td>
+                    <td>{{ candidacy.name }}</td>
+                    <td>{{ candidacy.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+
+    </main>
+</div>
+
+{% endblock %}

@@ -1,4 +1,5 @@
 #DEMOSTRAÇÃO PAILLIER
+"""
 from phe import paillier, PaillierPrivateKey, PaillierPublicKey, EncryptedNumber
     
 phe_public_key, phe_private_key = paillier.generate_paillier_keypair(n_length=512)
@@ -26,4 +27,4 @@ enc_result = EncryptedNumber(public_key=phe_public_key,
                 ciphertext=sum_of_encrypted_votes.ciphertext())
 
 print('my decrypted sum of votes', phe_private_key.decrypt(enc_result))
-
+"""

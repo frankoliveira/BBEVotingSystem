@@ -2,36 +2,37 @@
 {% block content %}
 <div class="row flex-grow-1 align-items-center justify-content-center">
     <main class="col">
+        <h1>Eleições</h1>
     
-    <table class="table table-primary table-hover table-bordered">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Título</th>
-            <th scope="col">Início da Votação</th>
-            <th scope="col">Fim da Votação</th>
-            <th scope="col">Opções</th>
-          </tr>
-        </thead>
-        <tbody>
-            {% for election in elections %}
-            <tr class="table-info">
-                <th scope="row">{{ election.id }}</th>
-                <td>{{ election.tittle }}</td>
-                <td>{{ election.start }}</td>
-                <td>{{ election.end }}</td>
-                <td>
-                    <a href="/eleicoes/votar/{{election.id}}">
-                        <span class="material-icons" title="Votar">ballot</span>
-                    </a>
-                    <a href="#">
-                        <span class="material-icons" title="Resultado">search</span>
-                    </a>
-                </td>
+        <table class="table table-primary table-hover table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Título</th>
+                <th scope="col">Início</th>
+                <th scope="col">Fim</th>
+                <th scope="col">Candidaturas</th>
             </tr>
-            {% endfor %}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+                {% for election in elections %}
+                <tr class="table-info">
+                    <th scope="row">{{ election.id }}</th>
+                    <td>{{ election.tittle }}</td>
+                    <td>{{ election.start }}</td>
+                    <td>{{ election.end }}</td>
+                    <td>
+                        <a href="/eleicoes/votar/{{election.id}}">
+                            <span class="material-icons" title="Votar">ballot</span>
+                        </a>
+                        <a href="/eleicoes/{{election.id}}">
+                            <span class="material-icons" title="Detalhes">search</span>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </main>
 </div>
 

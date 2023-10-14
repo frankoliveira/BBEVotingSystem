@@ -1,10 +1,9 @@
 from enum import Enum
 
-class OptionTypeEnum(Enum):
+class CandidacyTypeEnum(Enum):
     Candidate = 1
     ElectoralPlate = 2 #chapa
 
 class VoteTypeEnum(Enum):
     Valid = 1
-    Blank = 2
-    Null = 3
+    Null = 2

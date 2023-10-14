@@ -1,18 +1,18 @@
 from django.contrib import admin
-from voting.models import Election, Question, Option, ElectionVoter, Vote, ElectionResult
+from voting.models import Election, Position, Candidacy, ElectionVoter, Vote, ElectionResult
 
 # Register your models here.
 @admin.register(Election)
 class ElectionModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'tittle') 
 
-@admin.register(Question)
-class QuestionModelAdmin(admin.ModelAdmin):
+@admin.register(Position)
+class PositionModelAdmin(admin.ModelAdmin):
     list_display = ('id_election', 'description')
 
-@admin.register(Option)
-class OptionModelAdmin(admin.ModelAdmin):
-    list_display = ('id_question', 'value')
+@admin.register(Candidacy)
+class CandidacyModelAdmin(admin.ModelAdmin):
+    list_display = ('id_position', 'value')
 
 @admin.register(ElectionVoter)
 class ElectionVoterModelAdmin(admin.ModelAdmin):

@@ -1,6 +1,6 @@
 from django.db import models
 from users.models import CustomUser
-from .enums import OptionTypeEnum, VoteTypeEnum
+from .enums import CandidacyTypeEnum, VoteTypeEnum
 
 class Election(models.Model):
     id_author = models.ForeignKey(CustomUser, related_name='elections', on_delete=models.DO_NOTHING, db_column='id_autor')
@@ -34,39 +34,41 @@ class Election(models.Model):
         except Election.DoesNotExist:
             return None
 
-class Question(models.Model):
-    id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='questions', db_column='id_eleicao')
-    order = models.IntegerField(verbose_name="Ordem", db_column='ordem')
+class Position(models.Model):
+    id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='positions', db_column='id_eleicao')
+    order = models.IntegerField(verbose_name="Ordem", default=1, db_column='ordem')
     description = models.TextField(verbose_name="Descrição", max_length=100, db_column='descricao')
-    #active = models.BooleanField(verbose_name="Ativo", default=True, db_column='ativo')
     last_change = models.DateTimeField(verbose_name='Útima alteração', auto_now=True, db_column='ultima_alteracao')
 
     class Meta:
-        verbose_name = 'Questão'
-        verbose_name_plural = 'Questões'
+        verbose_name = 'Cargo'
+        verbose_name_plural = 'Cargos'
         ordering = ['id']
 
     def __str__(self) -> str:
         return self.description
 
 
-class Option(models.Model):
-    OPTION_TYPE_CHOICES = (
-        (OptionTypeEnum.Candidate.value, 'Candidato'),
-        (OptionTypeEnum.ElectoralPlate.value, 'Chapa')
+class Candidacy(models.Model):
+    CANDIDACY_TYPE_CHOICES = (
+        (CandidacyTypeEnum.Candidate.value, 'Candidato'),
+        (CandidacyTypeEnum.ElectoralPlate.value, 'Chapa')
     )
-    #id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='options', db_column='id_eleicao')
-    id_question = models.ForeignKey(Question, on_delete=models.DO_NOTHING, related_name='options', db_column='id_questao')
-    order = models.IntegerField(verbose_name="Ordem", db_column='ordem')
-    type = models.IntegerField(verbose_name="Tipo", choices=OPTION_TYPE_CHOICES, db_column='tipo')
+
+    id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='candidacies', db_column='id_eleicao')
+    id_position = models.ForeignKey(Position, on_delete=models.DO_NOTHING, related_name='candidacies', db_column='id_cargo')
+    type = models.IntegerField(verbose_name="Tipo", choices=CANDIDACY_TYPE_CHOICES, db_column='tipo')
+    number = models.IntegerField(verbose_name="Número", db_column='numero')
+    name = models.CharField(verbose_name='Nome', max_length=100, help_text='Máximo 100 caracteres', db_column='Nome')
+    description = models.CharField(verbose_name='Descrição', max_length=300, help_text='Máximo 300 caracteres', db_column='descricao')
     value = models.CharField(verbose_name='Valor', max_length=100, db_column='valor') #lista com candidatos
-    #received_votes = models.IntegerField(verbose_name="Votos recebidos", default=0, choices=TYPE_CHOICES, db_column='votos_recebidos')
+    received_votes = models.IntegerField(verbose_name="Votos recebidos", default=0, db_column='votos_recebidos')
     last_change = models.DateTimeField(verbose_name='Última alteração', auto_now=True, db_column='ultima_alteracao')
 
     class Meta:
-        verbose_name = 'Opção'
-        verbose_name_plural = 'Opções'
-        ordering = ['id']
+        verbose_name = 'Candidatura'
+        verbose_name_plural = 'Candidaturas'
+        ordering = ['?']
 
 class ElectionVoter(models.Model):
     '''
@@ -84,7 +86,6 @@ class ElectionVoter(models.Model):
 class Vote(models.Model):
     VOTE_TYPE_CHOICES = (
         (VoteTypeEnum.Valid.value, 'Válido'),
-        (VoteTypeEnum.Blank.value, 'Branco'),
         (VoteTypeEnum.Null.value, 'Nulo')
     )
 
