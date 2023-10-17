@@ -4,7 +4,8 @@ from orderer import views
 
 urlpatterns = [
     path('pending-transactions/', views.pending_transaction),
-    path('consensus/', views.create_consensus_block),
+    path('consensus/', views.create_consensus_block), #esse end-point será excluído
+    path('pre-prepare/', views.pre_prepare),
     path('prepare/', views.prepare),
     path('commit/', views.commit),
 ]
