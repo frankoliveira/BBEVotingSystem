@@ -12,7 +12,7 @@ class PositionModelAdmin(admin.ModelAdmin):
 
 @admin.register(Candidacy)
 class CandidacyModelAdmin(admin.ModelAdmin):
-    list_display = ('id_position', 'value')
+    list_display = ('id_position', 'number', 'name')
 
 @admin.register(ElectionVoter)
 class ElectionVoterModelAdmin(admin.ModelAdmin):

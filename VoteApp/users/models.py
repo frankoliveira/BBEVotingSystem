@@ -1,5 +1,12 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from stdimage.models import StdImageField
+
+def get_file_path(_instance, filename):
+    ext = filename.split('.')[-1]
+    filename = f'{uuid.uuid4()}.{ext}'
+    return filename
 
 class UsuarioManager(BaseUserManager):
     use_in_migrations = True
@@ -31,6 +38,7 @@ class UsuarioManager(BaseUserManager):
 class CustomUser(AbstractUser):
     email = models.EmailField(verbose_name='E-mail', unique=True, help_text='E-mail', db_column='email')
     is_staff = models.BooleanField(verbose_name='Member', default=True)
+    image = StdImageField('Imagem', upload_to=get_file_path, variations={'thumb': {'width': 480, 'height': 480, 'crop': True}})
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
@@ -38,4 +46,7 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.email
     
+    def get_image(self):
+        return self.image
+
     objects = UsuarioManager()

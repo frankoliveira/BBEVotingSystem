@@ -13,7 +13,6 @@
         <table class="table table-primary table-hover table-bordered">
             <thead>
                 <tr>
-                <th scope="col">#</th>
                 <th scope="col">Número</th>
                 <th scope="col">Nome</th>
                 <th scope="col">Descrição</th>
@@ -23,7 +22,6 @@
             <tbody>
                 {% for candidacy in position.candidacies %}
                 <tr class="table-info">
-                    <th scope="row">{{ election.id }}</th>
                     <td>{{ candidacy.number }}</td>
                     <td>{{ candidacy.name }}</td>
                     <td>{{ candidacy.description }}</td>

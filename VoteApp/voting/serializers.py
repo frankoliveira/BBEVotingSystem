@@ -1,10 +1,12 @@
 from rest_framework import serializers
 from voting.models import Election, Position, Candidacy, ElectionVoter
+from users.serializers import VotePageCustomUserSerializer
 
 class CandidacySerializer(serializers.ModelSerializer):
+    candidates = VotePageCustomUserSerializer(many=True, read_only=True) #retorna os usuários candidatos
     class Meta:
         model = Candidacy
-        fields = ['id', 'id_election', 'id_position', 'number', 'name', 'description', 'type', 'value', 'last_change']
+        fields = ['id', 'id_election', 'id_position', 'number', 'name', 'description', 'type', 'last_change', 'candidates']
 
 class PositionSerializer(serializers.ModelSerializer):
     candidacies = CandidacySerializer(many=True, read_only=True) #retorna o json das opções

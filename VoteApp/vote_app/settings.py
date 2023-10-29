@@ -126,7 +126,7 @@ USE_TZ = True
 LOGIN_URL = '/contas/login/'
 
 STATIC_URL = 'static/'
-MEDIA_URL = '/media/'
+MEDIA_URL = 'media/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') #diretório onde ficararão os arquivos dos diretórios static, em produção
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media') #diretório onde ficararão as mídias do projeto em produção
 
