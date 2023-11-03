@@ -103,17 +103,19 @@ def election_vote(request, pk, format=None):
         return render(request=request, template_name="election_vote.html", context={"election": serializer.data})
 
 #End-points extras
-@api_view(['GET'])
-def candidacy_details(request, pk, format=None):
-    candidacy = Candidacy.get_element_by_id(id_candidacy=pk)
-    print('requisição de candidatura recebida')
-    if request.method == 'GET':
-        if candidacy:
-            print('enviando candidatura encontrada')
-            serializer = CandidacySerializer(instance=candidacy)
-            print('dados da candidatura encontrada')
-            return Response(data=serializer.data)
-            
-        return Response(data='Not found.', status=status.HTTP_404_NOT_FOUND)
+@api_view(['POST'])
+def candidacy_details(request, format=None):
+    print(request.data)
+    if request.method == 'POST':
+        try:
+            id_election = int(request.data['id_election'])
+            number = int(request.data['number'])
+            candidacy = Candidacy.get_element(id_election=id_election, number=number)
+            if candidacy:
+                serializer = CandidacySerializer(instance=candidacy)
+                return Response(data=serializer.data)
+            return Response(data='Not found.', status=status.HTTP_404_NOT_FOUND)
+        except Exception as ex:
+            return Response(data='Erro na requisição.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 #End-points para teste
