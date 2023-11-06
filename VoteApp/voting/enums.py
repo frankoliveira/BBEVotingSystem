@@ -7,3 +7,8 @@ class CandidacyTypeEnum(Enum):
 class VoteTypeEnum(Enum):
     Valid = 1
     Null = 2
+
+class ElectionPhaseEnum(Enum):
+    PreVoting = 1
+    Voting = 2
+    PosVoting = 3

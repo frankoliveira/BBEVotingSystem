@@ -1,5 +1,6 @@
 #Model
 from voting.models import Election, Candidacy, ElectionVoter
+from security.models import PheManager
 
 #Forms
 from voting.forms import ElectionCreateForm
@@ -86,6 +87,10 @@ def election_vote(request, pk, format=None):
     if Election.check_voter_permission(id_election=pk, id_user=id_user)==False:
         messages.warning(request, 'Você não faz parte do grupo de eleitores desta eleição!')
         return redirect('eleicoes')
+    
+    if election.is_in_voting_period()==False:
+        messages.warning(request, 'Não é possível votar fora do período de votação.')
+        return redirect('eleicoes')
         
     if request.method == 'GET':
         serializer = ElectionSerializer(instance=election)
@@ -97,20 +102,33 @@ def election_vote(request, pk, format=None):
         return render(request=request, template_name="election_vote.html", context=context)
         
     if request.method == 'POST':
-        #processar voto
-        print(request.POST)
-        serializer = ElectionSerializer(instance=election)
-        return render(request=request, template_name="election_vote.html", context={"election": serializer.data})
+        try:
+            #print(request.POST)
+            
+            vote_is_valid = election.check_vote_validity(vote_form=request.POST)
+            print("vote_is_valid: ", vote_is_valid)
+            if vote_is_valid:
+                id_transaction = election.process_vote(id_user=id_user, vote_form=request.POST)
+                print("id_transaction: ", id_transaction)
 
+            return redirect('eleicoes')
+        except Exception as ex:
+            messages.warning(request, 'Ocorreu um erro ao processar o voto.')
+            return redirect('eleicoes')
+    
 #End-points extras
 @api_view(['POST'])
 def candidacy_details(request, format=None):
+    '''
+    End-point REST para obter dados da candidatura pelo número e eleição.
+    '''
     print(request.data)
     if request.method == 'POST':
         try:
             id_election = int(request.data['id_election'])
+            id_position = int(request.data['id_position'])
             number = int(request.data['number'])
-            candidacy = Candidacy.get_element(id_election=id_election, number=number)
+            candidacy = Candidacy.get_element(id_election=id_election, id_position=id_position, number=number)
             if candidacy:
                 serializer = CandidacySerializer(instance=candidacy)
                 return Response(data=serializer.data)

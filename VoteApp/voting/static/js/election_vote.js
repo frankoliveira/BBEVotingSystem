@@ -32,6 +32,7 @@ function get_candidacy_details(id_position, candidacy_number, id_election) {
         dataType: 'json',
         data: JSON.stringify({
             id_election: id_election,
+            id_position: id_position,
             number: candidacy_number
         }),
         success: function(result){
