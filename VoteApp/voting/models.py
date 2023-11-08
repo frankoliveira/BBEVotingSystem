@@ -1,6 +1,8 @@
 from django.db import models
 from users.models import CustomUser
 from .enums import CandidacyTypeEnum, VoteTypeEnum, ElectionPhaseEnum
+from security.models import PheManager
+import base64
 
 class Election(models.Model):
     ELECTION_PHASE = (
@@ -17,7 +19,7 @@ class Election(models.Model):
     end = models.DateTimeField(verbose_name='Fim', auto_now=False, db_column='fim')
     last_change = models.DateTimeField(verbose_name='Última Alteração', auto_now=True, db_column='ultima_alteracao')
     phase = models.IntegerField(verbose_name="Fase", choices=ELECTION_PHASE, default=ElectionPhaseEnum.PreVoting.value, db_column='fase')
-    phe_public_key = models.CharField(verbose_name='Chave Pública (Paillier)', default='', max_length=500, db_column='phe_chave_publica')
+    guid = models.CharField(verbose_name='guid', default='', max_length=500, db_column='guid')
 
     class Meta:
         verbose_name = 'Eleição'
@@ -27,6 +29,10 @@ class Election(models.Model):
     def __str__(self) -> str:
         return self.tittle
     
+    '''def save(self, *args, **kwargs):
+        self.last_change = datetime.now()
+        super(Election, self).save(*args, **kwargs)'''
+
     @staticmethod
     def get_element_by_id(id: int):
         try:
@@ -79,16 +85,19 @@ class Election(models.Model):
 
     def process_vote(self, id_user: int, vote_form):
         try:
-            import json
             blockchain_transaction_id = None
-
+            import json
+            election_positions = self.get_positions()                
+            voter = ElectionVoter.get_element(id_election=self.id, id_user=id_user)
+            print('ok1')
+            public_key = self.load_public_key()
+            private_key = self.load_private_key()
+            print('ok2')
             vote_dict = {
                 "id_eleicao": self.id,
                 "cargos": []
             }
-            
-            election_positions = self.get_positions()                
-            voter = ElectionVoter.get_element(id_election=self.id, id_user=id_user)
+        
             candidacy_choices_list = []
 
             for position in election_positions:
@@ -104,17 +113,62 @@ class Election(models.Model):
                     if number_candidacy_voter_choice==candidacy.number:
                         candidacy_choices_list.append(candidacy)
                         vote = 1
-                    position_vote['voto'][f'{candidacy.number}'] = vote
+                    enc_vote = public_key.encrypt(vote)
+                    decrypted = private_key.decrypt(enc_vote)
+                    print("valor descriptado: ", decrypted)
+                    position_vote['voto'][f'{candidacy.number}'] = enc_vote.ciphertext()
 
                 vote_dict['cargos'].append(position_vote)
             
             vote_string_format = json.dumps(vote_dict)
+            
+            #enviar voto = vote_string_format
+
+            for candidacy in candidacy_choices_list:
+                #atualizar contagem
+                pass
+
+            vote = Vote()
+            vote.id_election = self
+            vote.type = 1
+            vote.answer = vote_string_format
+            vote.save()
+
+            voter.has_voted = True
+            voter.save()
 
             return "transacao_id"
                 
         except Exception as ex:
             print("erro ao processar voto: ", ex)
             return None
+    
+    def generate_phe_keys(self):
+        '''
+        Gera chaves PHE - Paillier Homomorphic Encryption
+        '''
+        import os
+        public_key, private_key = PheManager.new_keys_512()
+        str_phe_public_key = PheManager.generate_str_public_key(public_key=public_key)
+        str_phe_private_key = PheManager.generate_str_private_key(private_key=private_key)
+        path_keys = f'media/election_keys/{self.guid}/'
+        os.mkdir(path_keys)
+
+        with open(path_keys+f'/private_phe_{self.id}.txt', 'w') as new_file:
+            new_file.write(str_phe_private_key)
+        
+        with open(path_keys+f'/public_phe_{self.id}.txt', 'w') as new_file:
+            new_file.write(str_phe_public_key)
+
+    def load_private_key(self):
+        with open(f'media/election_keys/{self.guid}/private_phe_{self.id}.txt', 'r') as file:
+            data = file.read()
+        return PheManager.load_private_key_from_str(private_key=data)
+    
+    def load_public_key(self):
+        with open(f'media/election_keys/{self.guid}/public_phe_{self.id}.txt', 'r') as file:
+            data = file.read()
+        return PheManager.load_public_key_from_str(public_key=data)
 
 class Position(models.Model):
     id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='positions', db_column='id_eleicao')
@@ -212,13 +266,7 @@ class ElectionVoter(models.Model):
         return None
 
 class Vote(models.Model):
-    VOTE_TYPE_CHOICES = (
-        (VoteTypeEnum.Valid.value, 'Válido'),
-        (VoteTypeEnum.Null.value, 'Nulo')
-    )
-
     id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='votes', db_column='id_eleicao')
-    type = models.IntegerField(verbose_name="Tipo", choices=VOTE_TYPE_CHOICES, db_column='tipo')
     answer = models.CharField(verbose_name='Resposta', max_length=500, db_column='resposta')
 
 class ElectionResult(models.Model):

@@ -17,3 +17,7 @@ class CandidacyModelAdmin(admin.ModelAdmin):
 @admin.register(ElectionVoter)
 class ElectionVoterModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'id_election', 'id_user', 'has_voted')
+
+@admin.register(Vote)
+class VoteModelAdmin(admin.ModelAdmin):
+    list_display = ('id_election', 'answer')

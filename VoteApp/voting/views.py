@@ -21,6 +21,7 @@ from django.contrib.auth.decorators import login_required
 from datetime import datetime
 from hashlib import sha256
 from datetime import datetime
+import uuid
 
 @login_required
 def index(request):
@@ -34,9 +35,12 @@ def criar_eleicao(request):
         election_form = ElectionCreateForm(request.POST)
         if election_form.is_valid():
             election = election_form.save(commit=False)
+            election.guid = uuid.uuid4()
             election.id_author = request.user
             election.creation = datetime.now()
             election.save()
+            election.generate_phe_keys()
+            
             return redirect('index')
         messages.error(request, "Erro ao criar eleição")
     form = ElectionCreateForm()

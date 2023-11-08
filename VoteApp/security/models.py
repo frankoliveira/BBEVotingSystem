@@ -39,4 +39,5 @@ class PheManager():
     def load_private_key_from_str(private_key: str) -> PaillierPrivateKey:
         key = json.loads(private_key)
         public_key = PaillierPublicKey(n=int(key['n']))
+        print('chave pri deu bom')
         return PaillierPrivateKey(public_key=public_key, p=int(key['p']), q=int(key['q']))
