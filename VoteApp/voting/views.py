@@ -35,12 +35,9 @@ def criar_eleicao(request):
         election_form = ElectionCreateForm(request.POST)
         if election_form.is_valid():
             election = election_form.save(commit=False)
-            election.guid = uuid.uuid4()
             election.id_author = request.user
-            election.creation = datetime.now()
             election.save()
-            election.generate_phe_keys()
-            
+            #election.generate_phe_keys()
             return redirect('index')
         messages.error(request, "Erro ao criar eleição")
     form = ElectionCreateForm()

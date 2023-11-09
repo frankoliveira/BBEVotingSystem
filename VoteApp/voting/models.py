@@ -1,8 +1,11 @@
 from django.db import models
 from users.models import CustomUser
-from .enums import CandidacyTypeEnum, VoteTypeEnum, ElectionPhaseEnum
+from .enums import CandidacyTypeEnum, ElectionPhaseEnum
 from security.models import PheManager
-import base64
+from phe import paillier, PaillierPrivateKey, PaillierPublicKey, EncryptedNumber
+import base64, json
+import uuid
+from datetime import datetime
 
 class Election(models.Model):
     ELECTION_PHASE = (
@@ -29,9 +32,13 @@ class Election(models.Model):
     def __str__(self) -> str:
         return self.tittle
     
-    '''def save(self, *args, **kwargs):
-        self.last_change = datetime.now()
-        super(Election, self).save(*args, **kwargs)'''
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            #ações antes de savar no banco
+            self.creation = datetime.now()
+            self.guid = uuid.uuid4()
+        super(Election, self).save(*args, **kwargs)
+        self.generate_phe_keys()
 
     @staticmethod
     def get_element_by_id(id: int):
@@ -84,21 +91,17 @@ class Election(models.Model):
         return True
 
     def process_vote(self, id_user: int, vote_form):
+        from phe import EncryptedNumber
         try:
-            blockchain_transaction_id = None
-            import json
             election_positions = self.get_positions()                
-            voter = ElectionVoter.get_element(id_election=self.id, id_user=id_user)
-            print('ok1')
             public_key = self.load_public_key()
-            private_key = self.load_private_key()
-            print('ok2')
+            #private_key = self.load_private_key() #apenas para teste
             vote_dict = {
                 "id_eleicao": self.id,
                 "cargos": []
             }
         
-            candidacy_choices_list = []
+            voted_candidacies = []
 
             for position in election_positions:
                 number_candidacy_voter_choice = int(vote_form[f'{position.id}'])
@@ -111,32 +114,28 @@ class Election(models.Model):
                 for candidacy in candidacies:
                     vote = 0
                     if number_candidacy_voter_choice==candidacy.number:
-                        candidacy_choices_list.append(candidacy)
+                        voted_candidacies.append(candidacy)
                         vote = 1
                     enc_vote = public_key.encrypt(vote)
-                    decrypted = private_key.decrypt(enc_vote)
-                    print("valor descriptado: ", decrypted)
+                    #decrypted = private_key.decrypt(enc_vote)
+                    #print("valor descriptado: ", decrypted)
                     position_vote['voto'][f'{candidacy.number}'] = enc_vote.ciphertext()
 
                 vote_dict['cargos'].append(position_vote)
             
             vote_string_format = json.dumps(vote_dict)
-            
             #enviar voto = vote_string_format
 
-            for candidacy in candidacy_choices_list:
-                #atualizar contagem
-                pass
+            for candidacy in voted_candidacies:
+                ciphertext = int(candidacy.received_votes)
+                encrypted_received_votes = EncryptedNumber(public_key=public_key, ciphertext=ciphertext) + 1
+                candidacy.received_votes = str(encrypted_received_votes.ciphertext())
+                candidacy.save()
+                #print("votos recebidos: ", private_key.decrypt(encrypted_received_votes))
 
-            vote = Vote()
-            vote.id_election = self
-            vote.type = 1
-            vote.answer = vote_string_format
-            vote.save()
-
-            voter.has_voted = True
-            voter.save()
-
+            self.update_voted_candidacies(public_key=public_key, voted_candidacies=voted_candidacies)
+            self.create_vote(voter_answer=vote_string_format)
+            self.set_has_voted(id_user=id_user)
             return "transacao_id"
                 
         except Exception as ex:
@@ -169,6 +168,28 @@ class Election(models.Model):
         with open(f'media/election_keys/{self.guid}/public_phe_{self.id}.txt', 'r') as file:
             data = file.read()
         return PheManager.load_public_key_from_str(public_key=data)
+    
+    def create_vote(self, voter_answer: str):
+        vote = Vote()
+        vote.id_election = self
+        vote.answer = voter_answer
+        vote.save()
+        return vote
+    
+    def set_has_voted(self, id_user: int):
+        voter = ElectionVoter.get_element(id_election=self.id, id_user=id_user)
+        voter.has_voted = True
+        voter.save()
+
+    def update_voted_candidacies(self, public_key: PaillierPublicKey, voted_candidacies: list):
+        for candidacy in voted_candidacies:
+            ciphertext = int(candidacy.received_votes)
+            encrypted_received_votes = EncryptedNumber(public_key=public_key, ciphertext=ciphertext) + 1
+            candidacy.received_votes = str(encrypted_received_votes.ciphertext())
+            candidacy.save()
+
+    def send_vote_to_blockchain(self):
+        pass
 
 class Position(models.Model):
     id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='positions', db_column='id_eleicao')
@@ -206,13 +227,20 @@ class Candidacy(models.Model):
     number = models.IntegerField(verbose_name="Número", db_column='numero')
     name = models.CharField(verbose_name='Nome', max_length=100, help_text='Máximo 100 caracteres', db_column='Nome')
     description = models.CharField(verbose_name='Descrição', max_length=300, help_text='Máximo 300 caracteres', db_column='descricao')
-    received_votes = models.IntegerField(verbose_name="Votos recebidos", default=0, db_column='votos_recebidos')
+    received_votes = models.CharField(verbose_name='Votos recebidos', max_length=300, default='', help_text='Máximo 300 caracteres', db_column='votos_recebidos')
     last_change = models.DateTimeField(verbose_name='Última alteração', auto_now=True, db_column='ultima_alteracao')
 
     class Meta:
         verbose_name = 'Candidatura'
         verbose_name_plural = 'Candidaturas'
         ordering = ['?']
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            public_key = self.id_election.load_public_key()
+            cipher = public_key.encrypt(0)
+            self.received_votes = str(cipher.ciphertext())
+        super(Candidacy, self).save(*args, **kwargs)
 
     @staticmethod
     def get_element_by_id(id_candidacy: int):
