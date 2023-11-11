@@ -136,5 +136,22 @@ def candidacy_details(request, format=None):
             return Response(data='Not found.', status=status.HTTP_404_NOT_FOUND)
         except Exception as ex:
             return Response(data='Erro na requisição.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+#End-points extras
+@api_view(['POST'])
+def parcial_results(request, format=None):
+    '''
+    End-point REST para obter dados das candidaturas atuais.
+    '''
+    
+    if request.method == 'POST':
+        try:
+            id_election = int(request.data['id_election'])
+            print('ok')
+            election = Election.get_element_by_id(id=id_election)
+            result = election.election_count()
+            return Response(data=result, status=status.HTTP_404_NOT_FOUND)
+        except Exception as ex:
+            return Response(data='Erro na requisição.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 #End-points para teste

@@ -7,6 +7,7 @@ urlpatterns = [
     path('eleicoes/criar', views.criar_eleicao, name='criar-eleicao'),
     path('eleicoes/<int:pk>/', views.election_details, name='detalhes-eleicao'),
     path('eleicoes/votar/<int:pk>/', views.election_vote, name='votar-eleicao'),
+    path('eleicoes/parcial-results/', views.parcial_results, name='parcial-results'),
 
     path('eleicoes/candidatura/detalhes', views.candidacy_details, name='detalhes-candidatura')
 ]

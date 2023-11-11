@@ -14,7 +14,7 @@ class Election(models.Model):
         (ElectionPhaseEnum.PosVoting.value, 'Pós-votação')
     )
 
-    id_author = models.ForeignKey(CustomUser, related_name='elections', on_delete=models.DO_NOTHING, db_column='id_autor')
+    id_author = models.ForeignKey(to=CustomUser, on_delete=models.DO_NOTHING, related_name='elections', db_column='id_autor')
     tittle = models.CharField(verbose_name='Titulo', max_length=200, help_text="Máximo 200 caracteres", db_column='titulo')
     description = models.CharField(verbose_name='Descrição', max_length=300, help_text='Máximo 300 caracteres', db_column='descricao')
     creation = models.DateTimeField(verbose_name='Criação', auto_now=True, db_column='criacao')
@@ -22,7 +22,7 @@ class Election(models.Model):
     end = models.DateTimeField(verbose_name='Fim', auto_now=False, db_column='fim')
     last_change = models.DateTimeField(verbose_name='Última Alteração', auto_now=True, db_column='ultima_alteracao')
     phase = models.IntegerField(verbose_name="Fase", choices=ELECTION_PHASE, default=ElectionPhaseEnum.PreVoting.value, db_column='fase')
-    guid = models.CharField(verbose_name='guid', default='', max_length=500, db_column='guid')
+    guid = models.CharField(verbose_name='guid', max_length=500, db_column='guid')
 
     class Meta:
         verbose_name = 'Eleição'
@@ -91,51 +91,52 @@ class Election(models.Model):
         return True
 
     def process_vote(self, id_user: int, vote_form):
-        from phe import EncryptedNumber
         try:
             election_positions = self.get_positions()                
             public_key = self.load_public_key()
             #private_key = self.load_private_key() #apenas para teste
+            candidacies_for_update = []
+
             vote_dict = {
                 "id_eleicao": self.id,
                 "cargos": []
             }
-        
-            voted_candidacies = []
 
             for position in election_positions:
-                number_candidacy_voter_choice = int(vote_form[f'{position.id}'])
+                voter_position_answer = int(vote_form[f'{position.id}'])
                 candidacies = position.get_candidacies()
-                position_vote = {}
-                position_vote['id_cargo'] = position.id
-                position_vote['descricao_cargo'] = position.description
-                position_vote['voto'] = {}
+                position_vote = {
+                    'id_cargo': position.id,
+                    'descricao_cargo': position.description,
+                    'voto': {}
+                }
 
                 for candidacy in candidacies:
                     vote = 0
-                    if number_candidacy_voter_choice==candidacy.number:
-                        voted_candidacies.append(candidacy)
+                    if voter_position_answer==candidacy.number:
                         vote = 1
+                    
                     enc_vote = public_key.encrypt(vote)
-                    #decrypted = private_key.decrypt(enc_vote)
-                    #print("valor descriptado: ", decrypted)
                     position_vote['voto'][f'{candidacy.number}'] = enc_vote.ciphertext()
+
+                    if candidacy.encrypted_received_votes:
+                        encrypted_received_votes = EncryptedNumber(public_key=public_key, ciphertext=int(candidacy.encrypted_received_votes))
+                        updated_encrypted_received_votes = encrypted_received_votes + enc_vote
+                    else:
+                        updated_encrypted_received_votes = enc_vote
+                    candidacy.encrypted_received_votes = str(updated_encrypted_received_votes.ciphertext())
+                    candidacies_for_update.append(candidacy)
 
                 vote_dict['cargos'].append(position_vote)
             
             vote_string_format = json.dumps(vote_dict)
             #enviar voto = vote_string_format
 
-            for candidacy in voted_candidacies:
-                ciphertext = int(candidacy.received_votes)
-                encrypted_received_votes = EncryptedNumber(public_key=public_key, ciphertext=ciphertext) + 1
-                candidacy.received_votes = str(encrypted_received_votes.ciphertext())
+            for candidacy in candidacies_for_update:
                 candidacy.save()
-                #print("votos recebidos: ", private_key.decrypt(encrypted_received_votes))
-
-            self.update_voted_candidacies(public_key=public_key, voted_candidacies=voted_candidacies)
             self.create_vote(voter_answer=vote_string_format)
             self.set_has_voted(id_user=id_user)
+
             return "transacao_id"
                 
         except Exception as ex:
@@ -181,15 +182,29 @@ class Election(models.Model):
         voter.has_voted = True
         voter.save()
 
-    def update_voted_candidacies(self, public_key: PaillierPublicKey, voted_candidacies: list):
-        for candidacy in voted_candidacies:
-            ciphertext = int(candidacy.received_votes)
-            encrypted_received_votes = EncryptedNumber(public_key=public_key, ciphertext=ciphertext) + 1
-            candidacy.received_votes = str(encrypted_received_votes.ciphertext())
-            candidacy.save()
-
-    def send_vote_to_blockchain(self):
+    def send_vote_to_blockchain(self, vote):
         pass
+
+    def election_count(self):
+        from datetime import datetime, timezone
+        #date_now = datetime.now(tz=timezone.utc)
+        #if date_now > self.end:
+        #    return False, 'Votação em andamento.'
+        
+        #votes = Vote.objects.filter(id_election=self.id)
+        
+        candidacies = Candidacy.objects.filter(id_election=self.id)
+        private_key = self.load_private_key()
+
+        result = []
+
+        for candidacy in candidacies:
+            encrypted_received_votes = EncryptedNumber(public_key=private_key.public_key, ciphertext=int(candidacy.encrypted_received_votes))
+            decrypted_received_votes = private_key.decrypt(encrypted_number=encrypted_received_votes)
+            candidacy.decrypted_result = decrypted_received_votes
+            result.append({'number': candidacy.number, 'votes': candidacy.decrypted_result})
+
+        return result
 
 class Position(models.Model):
     id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='positions', db_column='id_eleicao')
@@ -227,7 +242,8 @@ class Candidacy(models.Model):
     number = models.IntegerField(verbose_name="Número", db_column='numero')
     name = models.CharField(verbose_name='Nome', max_length=100, help_text='Máximo 100 caracteres', db_column='Nome')
     description = models.CharField(verbose_name='Descrição', max_length=300, help_text='Máximo 300 caracteres', db_column='descricao')
-    received_votes = models.CharField(verbose_name='Votos recebidos', max_length=300, default='', help_text='Máximo 300 caracteres', db_column='votos_recebidos')
+    encrypted_received_votes = models.CharField(verbose_name='Votos recebidos', max_length=300, default='', help_text='Máximo 300 caracteres', null=True, db_column='votos_recebidos')
+    decrypted_result = models.IntegerField(verbose_name="Resultado", default=None, null=True, db_column='resultado')
     last_change = models.DateTimeField(verbose_name='Última alteração', auto_now=True, db_column='ultima_alteracao')
 
     class Meta:
@@ -239,7 +255,7 @@ class Candidacy(models.Model):
         if not self.pk:
             public_key = self.id_election.load_public_key()
             cipher = public_key.encrypt(0)
-            self.received_votes = str(cipher.ciphertext())
+            self.encrypted_received_votes = str(cipher.ciphertext())
         super(Candidacy, self).save(*args, **kwargs)
 
     @staticmethod
@@ -267,8 +283,8 @@ class ElectionVoter(models.Model):
     Representa um eleitor elígel para votar numa eleição. 
     Indica se votou.
     '''
-    id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='election_voters', db_column='id_eleicao')
-    id_user = models.ForeignKey(CustomUser, on_delete=models.DO_NOTHING, db_column='id_autor')
+    id_election = models.ForeignKey(to=Election, on_delete=models.DO_NOTHING, related_name='election_voters', db_column='id_eleicao')
+    id_user = models.ForeignKey(to=CustomUser, on_delete=models.DO_NOTHING, db_column='id_autor')
     has_voted = models.BooleanField(verbose_name="Votou", default=False, db_column='votou')
 
     class Meta:
@@ -294,11 +310,12 @@ class ElectionVoter(models.Model):
         return None
 
 class Vote(models.Model):
-    id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='votes', db_column='id_eleicao')
+    id_election = models.ForeignKey(to=Election, on_delete=models.DO_NOTHING, related_name='votes', db_column='id_eleicao')
     answer = models.CharField(verbose_name='Resposta', max_length=500, db_column='resposta')
+    id_transaction = id_transaction = models.CharField(verbose_name='Transação', max_length=64, default='', db_column='id_transacao')
 
 class ElectionResult(models.Model):
-    id_election = models.OneToOneField(Election, verbose_name='Eleição', on_delete=models.DO_NOTHING, db_column='id_eleicao')
+    id_election = models.OneToOneField(to=Election, on_delete=models.DO_NOTHING, verbose_name='Eleição', db_column='id_eleicao')
     result = models.CharField(verbose_name='Resultado', max_length=100, db_column='resultado')
     creation = models.DateTimeField(verbose_name='Criação', auto_now=False, db_column='criacao')
     
