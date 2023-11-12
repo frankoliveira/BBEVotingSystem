@@ -1,7 +1,8 @@
 from django.db import models
 from users.models import CustomUser
+from orderer.models import Orderer
 from .enums import CandidacyTypeEnum, ElectionPhaseEnum
-from security.models import PheManager
+from security.PheManager import PheManager
 from phe import paillier, PaillierPrivateKey, PaillierPublicKey, EncryptedNumber
 import base64, json
 import uuid
@@ -22,7 +23,7 @@ class Election(models.Model):
     end = models.DateTimeField(verbose_name='Fim', auto_now=False, db_column='fim')
     last_change = models.DateTimeField(verbose_name='Última Alteração', auto_now=True, db_column='ultima_alteracao')
     phase = models.IntegerField(verbose_name="Fase", choices=ELECTION_PHASE, default=ElectionPhaseEnum.PreVoting.value, db_column='fase')
-    guid = models.CharField(verbose_name='guid', max_length=500, db_column='guid')
+    guid = models.CharField(verbose_name='guid', max_length=50, db_column='guid')
 
     class Meta:
         verbose_name = 'Eleição'
@@ -33,12 +34,17 @@ class Election(models.Model):
         return self.tittle
     
     def save(self, *args, **kwargs):
+        generate_phe_keys = False
         if not self.pk:
             #ações antes de savar no banco
             self.creation = datetime.now()
             self.guid = uuid.uuid4()
+            generate_phe_keys = True
+            
         super(Election, self).save(*args, **kwargs)
-        self.generate_phe_keys()
+
+        if generate_phe_keys:
+            self.generate_phe_keys()
 
     @staticmethod
     def get_element_by_id(id: int):
@@ -130,14 +136,18 @@ class Election(models.Model):
                 vote_dict['cargos'].append(position_vote)
             
             vote_string_format = json.dumps(vote_dict)
-            #enviar voto = vote_string_format
+            transacao_id = "teste"
+            transacao_id = Orderer.create_transaction(input=vote_string_format)
+
+            if not transacao_id:
+                return None
 
             for candidacy in candidacies_for_update:
                 candidacy.save()
             self.create_vote(voter_answer=vote_string_format)
             self.set_has_voted(id_user=id_user)
 
-            return "transacao_id"
+            return transacao_id
                 
         except Exception as ex:
             print("erro ao processar voto: ", ex)

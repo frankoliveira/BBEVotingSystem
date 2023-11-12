@@ -5,7 +5,7 @@ Comandos
 - Instalação do Django: "pip install Django"
 - Instalação do Django Rest Framework: "pip install djangorestframework"
 - Criar projeto Django (sem o ponto o django cria uma subpasta): "django-admin startproject nome-projeto ."
-- Criar app no projeto Django: "django-admin startapp nome-app"
+- Criar app no projeto Django: "django-admin startapp nome-app" "python manage.py startapp peer"
 - Criar migrations: "python manage.py makemigrations"
 - Criar migrations de um aplicativo: "python manage.py makemigrations nome-app"
 - Aplicar migrations (criar tabelas): "python manage.py migrate"

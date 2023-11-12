@@ -1,6 +1,6 @@
 #Model
 from voting.models import Election, Candidacy, ElectionVoter
-from security.models import PheManager
+from security.PheManager import PheManager
 
 #Forms
 from voting.forms import ElectionCreateForm
@@ -21,7 +21,6 @@ from django.contrib.auth.decorators import login_required
 from datetime import datetime
 from hashlib import sha256
 from datetime import datetime
-import uuid
 
 @login_required
 def index(request):
@@ -37,7 +36,6 @@ def criar_eleicao(request):
             election = election_form.save(commit=False)
             election.id_author = request.user
             election.save()
-            #election.generate_phe_keys()
             return redirect('index')
         messages.error(request, "Erro ao criar eleição")
     form = ElectionCreateForm()
@@ -93,25 +91,38 @@ def election_vote(request, pk, format=None):
         messages.warning(request, 'Não é possível votar fora do período de votação.')
         return redirect('eleicoes')
         
+    election_voter = ElectionVoter.get_element(id_election=id_election, id_user=id_user)
+
     if request.method == 'GET':
         serializer = ElectionSerializer(instance=election)
-        election_voter = ElectionVoter.get_element(id_election=id_election, id_user=id_user)
         context = {
             "election": serializer.data,
-            "voter_has_voted": election_voter.has_voted
+            "voter_has_voted": election_voter.has_voted,
         }
         return render(request=request, template_name="election_vote.html", context=context)
         
     if request.method == 'POST':
         try:
-            #print(request.POST)
-            
             vote_is_valid = election.check_vote_validity(vote_form=request.POST)
-            print("vote_is_valid: ", vote_is_valid)
+            '''serializer = ElectionSerializer(instance=election)
+            context = {
+                "election": serializer.data,
+                "id_transaction": "a5caa89db5e862f28975d1785ba7cf63de43255609812e7d71ba471f07e613a6"
+            }
+            return render(request=request, template_name="election_vote_confirmation.html", context=context)'''
+            
             if vote_is_valid:
                 id_transaction = election.process_vote(id_user=id_user, vote_form=request.POST)
-                print("id_transaction: ", id_transaction)
-
+                serializer = ElectionSerializer(instance=election)
+                if id_transaction:
+                    context = {
+                        "election": serializer.data,
+                        "id_transaction": id_transaction
+                    }
+                    return render(request=request, template_name="election_vote_confirmation.html", context=context)
+                messages.warning(request, 'Ocorreu um erro ao processar o voto.')
+                return redirect('eleicoes')
+            messages.warning(request, 'Voto inválido, não registrado.')
             return redirect('eleicoes')
         except Exception as ex:
             messages.warning(request, 'Ocorreu um erro ao processar o voto.')

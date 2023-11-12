@@ -11,7 +11,7 @@ import io
 from block.models import Block
 from transaction.models import Transaction, TransactionBlock
 from peer.models import Peer
-from security.models import CustomRSA
+#from security.CustomRSA import CustomRSA
 
 #Serializers
 from block.serializers import BlockSerializer

@@ -8,6 +8,11 @@ def get_file_path(_instance, filename):
     filename = f'image_users/{uuid.uuid4()}.{ext}'
     return filename
 
+def user_directory_path(instance, filename):
+    ext = filename.split('.')[-1]
+    filename = f'image_users/{uuid.uuid4()}.{ext}'
+    return filename
+
 class UsuarioManager(BaseUserManager):
     use_in_migrations = True
 
@@ -38,7 +43,8 @@ class UsuarioManager(BaseUserManager):
 class CustomUser(AbstractUser):
     email = models.EmailField(verbose_name='E-mail', unique=True, help_text='E-mail', db_column='email')
     is_staff = models.BooleanField(verbose_name='Member', default=True)
-    image = StdImageField('Imagem', upload_to=get_file_path, variations={'thumb': {'width': 480, 'height': 480, 'crop': True}})
+    #image = StdImageField('Imagem', upload_to=get_file_path, variations={'thumb': {'width': 480, 'height': 480, 'crop': True}})
+    image = models.ImageField(verbose_name='Imagem', default='image_users/default.png', upload_to=user_directory_path, db_column='image')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']

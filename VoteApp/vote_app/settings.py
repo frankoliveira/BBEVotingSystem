@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'security',
     'bootstrap4',
+    'peer',
 
     'django.contrib.admin',
     'django.contrib.auth',

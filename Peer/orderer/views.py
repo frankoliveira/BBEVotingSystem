@@ -4,7 +4,7 @@ from transaction.models import Transaction, TransactionBlock
 from block.models import Block
 from blockchain.models import Blockchain
 from peer.models import Peer
-from security.models import CustomRSA
+from security.CustomRSA import CustomRSA
 
 #Serializers
 from transaction.serializers import TransactionSerializer, TransactionBlockSerializer
@@ -26,7 +26,8 @@ def pending_transaction(request, format=None):
     Or receive a created transaction from a publishing node
     '''
     if request.method == 'POST':
-        #remote_ip = get_remote_ip(request)
+        remote_ip = Orderer.get_remote_ip(request)
+        print('ip remoto:', remote_ip)
         remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
         
         if remote_peer==None:
