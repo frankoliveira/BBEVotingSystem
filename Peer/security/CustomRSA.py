@@ -1,5 +1,6 @@
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidSignature
 from typing import Union
@@ -7,7 +8,7 @@ import base64
 DEFAULT_RSA_PUBLIC_EXPONENT = 65537
 DEFAULT_RSA_KEY_SIZE = 2048
 DEFAULT_RSA_ENCRYPTION_PADDING = padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
-DEFAULT_RSA_SIGN_PADDING = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
+DEFAULT_RSA_SIGN_PADDING = padding.PKCS1v15()
 
 class CustomRSA:
     '''
@@ -45,7 +46,7 @@ class CustomRSA:
             file.close()
     
     @staticmethod
-    def load_pem_private_key_from_file(path: str) -> rsa.RSAPrivateKey:
+    def load_pem_private_key_from_file(path: str) -> RSAPrivateKey:
         try:
             with open(path, 'rb') as file:
                 private_key = serialization.load_pem_private_key(data = file.read(), 
@@ -57,7 +58,7 @@ class CustomRSA:
             raise Exception(f'Failed to load private key: {ex}')
 
     @staticmethod
-    def load_pem_public_key_from_file(path: str) -> rsa.RSAPublicKey:
+    def load_pem_public_key_from_file(path: str) -> RSAPublicKey:
         try:
             with open(path, 'rb') as file:
                 public_key = serialization.load_pem_public_key(
@@ -69,7 +70,7 @@ class CustomRSA:
             raise Exception('Failed to load public key from file.')
         
     @staticmethod
-    def load_pem_public_key_from_bytes(key: bytes) -> rsa.RSAPublicKey:
+    def load_pem_public_key_from_bytes(key: bytes) -> RSAPublicKey:
         try:
             public_key = serialization.load_pem_public_key(
                 data = key, 
@@ -100,25 +101,25 @@ class CustomRSA:
             raise Exception('Failed to encrypt.')
         
     @staticmethod
-    def sign(private_key: rsa.RSAPrivateKey, message: bytes):
+    def sign(private_key: rsa.RSAPrivateKey, message: bytes) -> bytes:
         try:
             signature = private_key.sign(
                 data=message,
                 padding=DEFAULT_RSA_SIGN_PADDING,
-                algorithm=hashes.SHA256()
+                algorithm=hashes.SHA1()
             )
             return signature
         
         except Exception as ex:
             raise Exception('Failed to sign.')
         
-    def verify(public_key: rsa.RSAPublicKey, signature: bytes, message: bytes):
+    def verify(public_key: rsa.RSAPublicKey, signature: bytes, message: bytes) -> bool:
         try:
             public_key.verify(
                             signature=signature,
                             data=message,
                             padding=DEFAULT_RSA_SIGN_PADDING,
-                            algorithm=hashes.SHA256()
+                            algorithm=hashes.SHA1()
                         )
             return True
         except InvalidSignature as ex:

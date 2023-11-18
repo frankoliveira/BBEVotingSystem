@@ -11,7 +11,7 @@ from transaction.serializers import TransactionSerializer, TransactionBlockSeria
 from block.serializers import BlockSerializer
 
 #Other
-import json, time
+import json, time, base64
 from hashlib import sha256
 from django.http import Http404
 from rest_framework.response import Response
@@ -26,8 +26,6 @@ def pending_transaction(request, format=None):
     Or receive a created transaction from a publishing node
     '''
     if request.method == 'POST':
-        remote_ip = Orderer.get_remote_ip(request)
-        print('ip remoto:', remote_ip)
         remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
         
         if remote_peer==None:
@@ -65,9 +63,10 @@ def create_consensus_block(request, format=None):
     '''
     if request.method == 'GET':
         try:
-            block_serializer_data = Orderer.propose_block()
-            if block_serializer_data:
-                return Response(data=block_serializer_data, status=status.HTTP_201_CREATED)
+            new_block = Orderer.propose_block()
+            if new_block:
+                block_serializer = BlockSerializer(instance=new_block)
+                return Response(data=block_serializer.data, status=status.HTTP_201_CREATED)
             return Response(data='Não há transações pendentes', status=status.HTTP_200_OK)
         except Exception as ex:
             return Response(data=f"Erro na solicitação ccb:{ex}", status=status.HTTP_400_BAD_REQUEST)
@@ -80,32 +79,49 @@ def pre_prepare(request, format=None):
     """
     print('pré-prepare acionado')
     if request.method == 'POST':
-        remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
-        orderer = Orderer.get_instance()
+        try:
+            orderer = Orderer.get_instance()
+            remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
 
-        if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.id==orderer.consensus_leader_id:
-            block_serializer = BlockSerializer(data=request.data["block"])
-            if block_serializer.is_valid():
-                pre_prepare_accepted = True
+            if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.id==orderer.consensus_leader_id:
+                block_serializer = BlockSerializer(data=request.data["block"])
+                
+                if block_serializer.is_valid():
+                    print(block_serializer.data)
+                    pre_prepare_accepted = True
+                    consensus_view = int(request.data["pre_prepare"]["view"])
+                    consensus_number = int(request.data["pre_prepare"]["number"])
+                    consensus_block_hash = request.data["pre_prepare"]["block_hash"]
+                    signature = base64.b64decode(request.data["signature"])
+                    bytes_pre_prepare: bytes = json.dumps(request.data["pre_prepare"]).encode('utf-8')
+                    if consensus_view != orderer.consensus_view:
+                        pre_prepare_accepted = False
+                        print("pre-prepare recusado: view diferente")
 
-                if request.data["view"] != orderer.consensus_view:
-                    pre_prepare_accepted = False
-                    print("pre-prepare recusado: view diferente")
-                if orderer.check_pre_prepare_hash(block=block_serializer.data, block_hash=request.data["block_hash"]) == False:
-                    pre_prepare_accepted = False
-                    print("pre-prepare recusado: hash incorreto")
-    
-                if pre_prepare_accepted:
-                    print("pré-prepare aceito")
-                    orderer.reset_consensus_values()
-                    orderer.consensus_block_dict = block_serializer.data
-                    orderer.consensus_block_hash = request.data["block_hash"]
-                    orderer.send_prepare()
-                    return Response(data='accepted', status=status.HTTP_200_OK)
+                    if orderer.check_pre_prepare_hash(block=block_serializer.data, block_hash=consensus_block_hash) == False:
+                        pre_prepare_accepted = False
+                        print("pre-prepare recusado: hash incorreto")
+
+                    if orderer.verify_signature(public_key=remote_peer.get_public_key(), signature=signature, message=bytes_pre_prepare) == False:
+                        pre_prepare_accepted = False
+                        print("pre-prepare recusado: falha na assinatura")
+
+                    if pre_prepare_accepted:
+                        print("pré-prepare aceito")
+                        orderer.reset_consensus_values()
+                        orderer.consensus_block_dict = block_serializer.data
+                        orderer.consensus_number = consensus_number
+                        orderer.consensus_block_hash = consensus_block_hash
+                        print('enviando prepare')
+                        orderer.send_prepare()
+                        return Response(data='accepted', status=status.HTTP_200_OK)
+                    return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)
+                return Response(block_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
                 return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)
-            return Response(block_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)
+        except Exception as ex:
+            print(f'pre-prepare-error: {ex}')
+            return Response(data=f'Error: {ex}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 #prepare/
 @api_view(['POST'])
@@ -131,6 +147,7 @@ def prepare(request, format=None):
                 print("prepare aceito")
                 orderer.consensus_received_prepares += 1
                 if orderer.consensus_received_prepares >= 1 and orderer.consensus_sent_commit==False:
+                    print('enviando commit')
                     Orderer.send_commit()
                 return Response(data='accepted', status=status.HTTP_200_OK)
             
@@ -164,9 +181,11 @@ def commit(request, format=None):
                 print("commit aceito")
                 orderer.consensus_received_commits += 1
                 if orderer.consensus_is_achieved == False and orderer.consensus_received_commits >= 1:
+                    print('decidindo bloco')
                     Orderer.decide()
                 return Response(data='accepted', status=status.HTTP_200_OK)
 
             return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
+        

@@ -7,7 +7,7 @@ import base64
 DEFAULT_RSA_PUBLIC_EXPONENT = 65537
 DEFAULT_RSA_KEY_SIZE = 2048
 DEFAULT_RSA_ENCRYPTION_PADDING = padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
-DEFAULT_RSA_SIGN_PADDING = padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH)
+DEFAULT_RSA_SIGN_PADDING = padding.PKCS1v15()
 
 class CustomRSA:
     '''
@@ -125,3 +125,5 @@ class CustomRSA:
             return False
         except Exception as ex:
             raise Exception('Failed to verify.') 
+
+

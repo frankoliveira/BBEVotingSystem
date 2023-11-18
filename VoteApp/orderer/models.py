@@ -47,13 +47,14 @@ class Orderer():
         '''
         static
         '''
+        orderer = Orderer.get_instance()
         message = {
-            "peer_id": Orderer.get_instance().peer_id,
+            "peer_id": orderer.peer_id,
             "input": input
         }
 
         try:
-            url = f'http://127.0.0.1:8000/pending-transactions/'
+            url = f'http://{orderer.consensus_leader_id}/pending-transactions/'
             response = requests.post(url=url, json=message)
             return response.json()['id']
         except Exception as ex:

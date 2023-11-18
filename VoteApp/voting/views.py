@@ -143,6 +143,7 @@ def candidacy_details(request, format=None):
             candidacy = Candidacy.get_element(id_election=id_election, id_position=id_position, number=number)
             if candidacy:
                 serializer = CandidacySerializer(instance=candidacy)
+                print(serializer.data)
                 return Response(data=serializer.data)
             return Response(data='Not found.', status=status.HTTP_404_NOT_FOUND)
         except Exception as ex:

@@ -5,12 +5,15 @@ from typing import Union
 import time
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
-import io
+import io, base64
 
 #Models
 from block.models import Block
+from blockchain.models import Blockchain
 from transaction.models import Transaction, TransactionBlock
 from peer.models import Peer
+from security.CustomRSA import CustomRSA
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 #from security.CustomRSA import CustomRSA
 
 #Serializers
@@ -23,22 +26,27 @@ class Orderer():
     def __init__(self) -> None:
         self.peer_id = '127.0.0.1:8000'
         self.transactions_per_block = 2
-        self.consensus_leader_id = '127.0.0.1:8000'
+        self.peer_private_key: RSAPrivateKey = CustomRSA.load_pem_private_key_from_file('rsa_keys/private_key.pem')
         
-        self.consensus_view = 1
-        self.consensus_block_dict = None
-        self.consensus_block_hash = None
-        self.consensus_received_prepares = 0
-        self.consensus_sent_commit = False
-        self.consensus_received_commits = 0
-        self.consensus_is_achieved = False
-        #self.rsa_private_key = CustomRSA.load_pem_private_key_from_file(path='rsa_keys/private_key.pem')
+        self.consensus_leader_id = '127.0.0.1:8000'
+        self.consensus_view: int = 1
+        self.consensus_block_dict: dict = None
+        self.consensus_block_hash: str = None
+        self.consensus_number: int = 0
+        self.consensus_received_prepares: int = 0
+        self.consensus_sent_commit: bool = False
+        self.consensus_received_commits: int = 0
+        self.consensus_is_achieved: bool = False
 
     @classmethod
     def get_instance(self):
         if self.instance == None:
             self.instance = self()
         return self.instance
+    
+    def load_consensus_peers(self):
+        peers = Peer.get_publishing_peers()
+        self.consensus_peers: list = [ConsensusPeer(peer=peer) for peer in peers]
     
     def reset_consensus_values(self):
         '''
@@ -70,19 +78,23 @@ class Orderer():
         '''
         static
         '''
-        return True
+        hash = sha256(json.dumps(block).encode('utf-8')).hexdigest()
+        print('hash:', hash)
+        print('block_hash', block_hash)
+        return hash==block_hash
     
     @staticmethod
     def broadcast_pending_transaction(transction_dict: dict) -> None:
         '''
         static
         '''
+        orderer = Orderer.get_instance()
         message = {
-            "peer_id": Orderer.get_instance().peer_id,
+            "peer_id": orderer.peer_id,
             "transaction": transction_dict
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True)
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/pending-transactions/'
@@ -101,6 +113,7 @@ class Orderer():
         if unconfirmed_transactions!=None:
             transactions_serializer =  TransactionSerializer(instance=unconfirmed_transactions, many=True)
             block = Block()
+            block.pk = 1
             block.peer = orderer.peer_id
             block.timestamp = datetime.now()
             block.merkle_root = 'merkle'
@@ -119,39 +132,53 @@ class Orderer():
         new_block = Orderer.create_consensus_block()
 
         if new_block:
-            block_serializer = BlockSerializer(instance=new_block)
-            orderer.consensus_block_dict = block_serializer.data
-            orderer.consensus_block_hash = "hash"
-            Orderer.send_pre_prepare(block_dict=block_serializer.data)
-            #Orderer.send_prepare()
+            Orderer.send_pre_prepare(block=new_block)
+            Orderer.send_prepare()
             #Orderer.send_commit()
-            return block_serializer.data
+            return new_block
         return None
     
     @staticmethod
-    def send_pre_prepare(block_dict):
+    def send_pre_prepare(block: Block):
         '''
         static - Líder anuncia novo bloco para os peers
         '''
         #obs:
         #no artigo temos: v:view, n:client request order number, m: message, d: hash digest of message m
         orderer = Orderer.get_instance()
-        message = {
-            "peer_id": orderer.peer_id, #usando para identificação
-            "view": orderer.consensus_view, #v: rodada atual, um número consecutivo
-            "block": block_dict, #m: mensagem
-            "block_hash": "hash", #d: hash da mensagem
-            "block_hash_signature": "signature" #assinatura
+        serializer = BlockSerializer(instance=block)
+        serializer_data = serializer.data
+        serializer_data.pop('id', None) #removido pois aqui o dict iria com id=None, mas o serializer ignora o id(pk) ao recebê-lo no post (que é criação)
+        orderer.consensus_block_dict = serializer_data
+        orderer.consensus_block_hash = sha256(json.dumps(serializer_data).encode('utf-8')).hexdigest()
+        orderer.consensus_number = Blockchain.get_last_block().id + 1
+
+        pre_prepare = {
+            'view': orderer.consensus_view, #v: rodada atual, um número consecutivo
+            'number': orderer.consensus_number, #numero de sequencia atribuida a mensagem
+            'block_hash': orderer.consensus_block_hash, #d: hash da mensagem
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True)
+        bytes_pre_prepare: bytes = json.dumps(pre_prepare).encode('utf-8')
+        sign: bytes = CustomRSA.sign(private_key=orderer.peer_private_key, message=bytes_pre_prepare)
+        signature = base64.b64encode(sign).decode('utf-8')
+
+        message = {
+            'peer_id': orderer.peer_id, #usando para identificação
+            "pre_prepare": pre_prepare,
+            "signature": signature, #assinatura
+            "block": orderer.consensus_block_dict, #m: mensagem
+        }
+
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/pre-prepare/'
+                print(f"enviando pre-prepare para {url}")
                 requests.post(url=url,
                               json=message)
             except Exception as ex:
-                print(f"erro ao enviar pré-prepare para o peer {peer.host}:{peer.port}")
+                print(f"erro ao enviar pré-prepare para o peer {peer.host}:{peer.port}: {ex}")
 
     @staticmethod
     def send_prepare():
@@ -166,7 +193,7 @@ class Orderer():
             "block_hash": orderer.consensus_block_hash
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True)
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/prepare/'
@@ -187,7 +214,7 @@ class Orderer():
             "block_hash": orderer.consensus_block_hash
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True)
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/commit/'
@@ -228,3 +255,12 @@ class Orderer():
             #Orderer.get_instance().consensus_block_dict = None
             #Orderer.get_instance().consensus_received_commits = 0
             Orderer.get_instance().consensus_is_achieved = True
+
+    @staticmethod      
+    def verify_signature(public_key: RSAPublicKey, signature: bytes, message: bytes):
+        return CustomRSA.verify(public_key=public_key, signature=signature, message=message)
+    
+class ConsensusPeer():
+    def __init__(self, peer: Peer) -> None:
+        self.peer: Peer = peer
+        self.public_key: RSAPublicKey = peer.get_public_key()

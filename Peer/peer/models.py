@@ -1,4 +1,7 @@
+from security.CustomRSA import CustomRSA
+
 from django.db import models
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
 class Peer(models.Model):
     #em produção o id poderia ser apenas o ip
@@ -25,3 +28,13 @@ class Peer(models.Model):
             return peer
         except Peer.DoesNotExist:
             return None
+        
+    @staticmethod
+    def get_publishing_peers():
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True)
+        if len(peers)>0:
+            return peers
+        return None
+    
+    def get_public_key(self) -> RSAPublicKey:
+        return CustomRSA.load_pem_public_key_from_bytes(key=self.rsa_public_key.encode('utf-8'))

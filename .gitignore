@@ -137,4 +137,4 @@ GitHub.sublime-settings
 .history
 
 # .PEM KEYS
-.pem
+*.pem
