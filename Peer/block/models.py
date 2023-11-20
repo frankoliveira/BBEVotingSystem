@@ -29,7 +29,20 @@ class Block(models.Model):
         }
         
     def hash(self):
+        '''
+        Hash do cabeçalho.
+        '''
         block_string = json.dumps(self.block_header_as_dict(), sort_keys=True)
         block_hash = sha256(block_string.encode()).hexdigest()
         return block_hash
     
+    @staticmethod
+    def sha256_for_merkly(data: str, data2: str = '') -> str:
+        from hashlib import sha256
+        return sha256(str(data+data2).encode('utf-8')).hexdigest()
+    
+    @staticmethod
+    def create_merkle_root(leafs: list):
+        from merkly.mtree import MerkleTree
+        merkle_tree = MerkleTree(leafs=leafs, hash_function=Block.sha256_for_merkly)
+        return merkle_tree.root

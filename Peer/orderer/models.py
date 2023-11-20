@@ -74,14 +74,12 @@ class Orderer():
         return ip
     
     @staticmethod
-    def check_pre_prepare_hash(block: dict, block_hash: str) -> bool:
+    def check_hash(data: bytes, hash: str) -> bool:
         '''
         static
         '''
-        hash = sha256(json.dumps(block).encode('utf-8')).hexdigest()
-        print('hash:', hash)
-        print('block_hash', block_hash)
-        return hash==block_hash
+        _hash = sha256(data).hexdigest()
+        return hash==_hash
     
     @staticmethod
     def broadcast_pending_transaction(transction_dict: dict) -> None:
@@ -112,11 +110,11 @@ class Orderer():
 
         if unconfirmed_transactions!=None:
             transactions_serializer =  TransactionSerializer(instance=unconfirmed_transactions, many=True)
+            merkle_tree_leafs = [json.dumps(transaction) for transaction in transactions_serializer.data]
             block = Block()
-            block.pk = 1
             block.peer = orderer.peer_id
             block.timestamp = datetime.now()
-            block.merkle_root = 'merkle'
+            block.merkle_root = Block.create_merkle_root(leafs=merkle_tree_leafs)
             block.previous_hash = Block.objects.last().hash()
             block.transactions = json.dumps(transactions_serializer.data)
             return block
@@ -156,7 +154,7 @@ class Orderer():
         pre_prepare = {
             'view': orderer.consensus_view, #v: rodada atual, um número consecutivo
             'number': orderer.consensus_number, #numero de sequencia atribuida a mensagem
-            'block_hash': orderer.consensus_block_hash, #d: hash da mensagem
+            'block_hash': orderer.consensus_block_hash #d: hash da mensagem
         }
 
         bytes_pre_prepare: bytes = json.dumps(pre_prepare).encode('utf-8')
@@ -167,7 +165,7 @@ class Orderer():
             'peer_id': orderer.peer_id, #usando para identificação
             "pre_prepare": pre_prepare,
             "signature": signature, #assinatura
-            "block": orderer.consensus_block_dict, #m: mensagem
+            "block": orderer.consensus_block_dict #m: mensagem
         }
 
         peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
@@ -185,12 +183,23 @@ class Orderer():
         '''
         static
         '''
+        #v, n, d
         orderer = Orderer.get_instance()
+
+        prepare = {
+            'view': orderer.consensus_view,
+            'number': orderer.consensus_number,
+            'block_hash': orderer.consensus_block_hash
+        }
+
+        bytes_prepare: bytes = json.dumps(prepare).encode('utf-8')
+        sign: bytes = CustomRSA.sign(private_key=orderer.peer_private_key, message=bytes_prepare)
+        signature = base64.b64encode(sign).decode('utf-8')
+
         message = {
-            "peer_id": orderer.peer_id,
-            "view": orderer.consensus_view,
-            #"n": 1,
-            "block_hash": orderer.consensus_block_hash
+            'peer_id': orderer.peer_id,
+            'prepare': prepare,
+            'signature': signature
         }
 
         peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
@@ -208,10 +217,21 @@ class Orderer():
         static
         '''
         orderer = Orderer.get_instance()
+
+        commit = {
+            'view': orderer.consensus_view,
+            'number': orderer.consensus_number,
+            'block_hash': orderer.consensus_block_hash
+        }
+
+        bytes_commit: bytes = json.dumps(commit).encode('utf-8')
+        sign: bytes = CustomRSA.sign(private_key=orderer.peer_private_key, message=bytes_commit)
+        signature = base64.b64encode(sign).decode('utf-8')
+
         message = {
             "peer_id": orderer.peer_id,
-            "view": orderer.consensus_view,
-            "block_hash": orderer.consensus_block_hash
+            "commit": commit,
+            "signature": signature
         }
 
         peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
@@ -238,9 +258,10 @@ class Orderer():
                 #confirmação das transações pendentes
                 transactions_list: list = json.loads(block.transactions)
 
+                #confirmação das transações pendentes
                 for i in range(len(transactions_list)):
                     transaction_dict = transactions_list[i]
-                    transaction = Transaction.objects.get(pk=transaction_dict["id"])
+                    transaction = Transaction.get_element_by_id(id=transaction_dict["id"])
                     transaction.confirmed = True
                     transaction.save()
 
@@ -251,14 +272,17 @@ class Orderer():
                     transaction_block.position = i
                     transaction_block.timestamp = datetime.now()
                     transaction_block.save()
-
-            #Orderer.get_instance().consensus_block_dict = None
-            #Orderer.get_instance().consensus_received_commits = 0
             Orderer.get_instance().consensus_is_achieved = True
 
     @staticmethod      
     def verify_signature(public_key: RSAPublicKey, signature: bytes, message: bytes):
         return CustomRSA.verify(public_key=public_key, signature=signature, message=message)
+    
+    @staticmethod 
+    def verifify_merkle_root(transaction_dicts: list, merkle_root: str):
+        merkle_tree_leafs = [json.dumps(trx) for trx in transaction_dicts]
+        _merkle_root = Block.create_merkle_root(leafs=merkle_tree_leafs)
+        return _merkle_root==merkle_root
     
 class ConsensusPeer():
     def __init__(self, peer: Peer) -> None:

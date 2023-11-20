@@ -36,6 +36,14 @@ class Transaction(models.Model):
             return ordered_transactions[:quantity_to_return]
         else:
             return None
+        
+    @staticmethod
+    def get_element_by_id(id: int):
+        try:
+            election = Transaction.objects.get(id=id)
+            return election
+        except Transaction.DoesNotExist:
+            return None
     
 class TransactionBlock(models.Model):
     '''

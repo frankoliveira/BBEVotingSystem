@@ -87,24 +87,30 @@ def pre_prepare(request, format=None):
                 block_serializer = BlockSerializer(data=request.data["block"])
                 
                 if block_serializer.is_valid():
-                    print(block_serializer.data)
                     pre_prepare_accepted = True
                     consensus_view = int(request.data["pre_prepare"]["view"])
                     consensus_number = int(request.data["pre_prepare"]["number"])
                     consensus_block_hash = request.data["pre_prepare"]["block_hash"]
                     signature = base64.b64decode(request.data["signature"])
+                    bytes_block = json.dumps(block_serializer.data).encode('utf-8')
                     bytes_pre_prepare: bytes = json.dumps(request.data["pre_prepare"]).encode('utf-8')
+
                     if consensus_view != orderer.consensus_view:
                         pre_prepare_accepted = False
                         print("pre-prepare recusado: view diferente")
 
-                    if orderer.check_pre_prepare_hash(block=block_serializer.data, block_hash=consensus_block_hash) == False:
+                    if orderer.check_hash(data=bytes_block, hash=consensus_block_hash) == False:
                         pre_prepare_accepted = False
                         print("pre-prepare recusado: hash incorreto")
 
                     if orderer.verify_signature(public_key=remote_peer.get_public_key(), signature=signature, message=bytes_pre_prepare) == False:
                         pre_prepare_accepted = False
                         print("pre-prepare recusado: falha na assinatura")
+
+                    if orderer.verifify_merkle_root(transaction_dicts=json.loads(block_serializer.data['transactions']), 
+                                                    merkle_root=block_serializer.data['merkle_root']) == False:
+                        pre_prepare_accepted = False
+                        print("pre-prepare recusado: falha na merkle root")
 
                     if pre_prepare_accepted:
                         print("pré-prepare aceito")
@@ -135,13 +141,27 @@ def prepare(request, format=None):
         orderer = Orderer.get_instance()
         if remote_peer!=None and remote_peer.is_publishing_node:
             prepare_accepted = True
+            consensus_view = int(request.data["prepare"]["view"])
+            consensus_number = int(request.data["prepare"]["number"])
+            consensus_block_hash = request.data["prepare"]["block_hash"]
+            signature = base64.b64decode(request.data["signature"])
+            bytes_prepare: bytes = json.dumps(request.data["prepare"]).encode('utf-8')
 
-            if request.data["view"] != orderer.consensus_view:
+            if orderer.verify_signature(public_key=remote_peer.get_public_key(), signature=signature, message=bytes_prepare) == False:
+                prepare_accepted = False
+                print("pre-prepare recusado: falha na assinatura")
+
+            if consensus_view != orderer.consensus_view:
+                prepare_accepted = False
                 print("prepare recusado: view diferente")
+
+            if consensus_number != orderer.consensus_number:
                 prepare_accepted = False
-            if request.data["block_hash"] != orderer.consensus_block_hash:
+                print("prepare recusado: numero diferente")
+
+            if consensus_block_hash != orderer.consensus_block_hash:
+                prepare_accepted = False
                 print("prepare recusado: hash incorreto")
-                prepare_accepted = False
             
             if prepare_accepted:
                 print("prepare aceito")
@@ -168,14 +188,24 @@ def commit(request, format=None):
 
         if remote_peer!=None and remote_peer.is_publishing_node:
             commit_accepted = True
+            consensus_view = int(request.data["commit"]["view"])
+            consensus_number = int(request.data["commit"]["number"])
+            consensus_block_hash = request.data["commit"]["block_hash"]
+            signature = base64.b64decode(request.data["signature"])
+            bytes_commit: bytes = json.dumps(request.data["commit"]).encode('utf-8')
 
-            if request.data["view"] != orderer.consensus_view:
-                print("commit recusado: view diferente")
+            if orderer.verify_signature(public_key=remote_peer.get_public_key(), signature=signature, message=bytes_commit) == False:
                 commit_accepted = False
+                print("commit recusado: falha na assinatura")
 
-            if request.data["block_hash"] != orderer.consensus_block_hash:
-                print("commit recusado: hash incorreto")
-                prepare_accepted = False
+            if consensus_view != orderer.consensus_view:
+                commit_accepted = False
+                print("commit recusado: view diferente")
+
+            if consensus_number != orderer.consensus_number:
+                #verificar intervalo do número
+                commit_accepted = False
+                print("prepare recusado: numero diferente")
 
             if commit_accepted:
                 print("commit aceito")
