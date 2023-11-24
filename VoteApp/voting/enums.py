@@ -12,3 +12,14 @@ class ElectionPhaseEnum(Enum):
     PreVoting = 1
     Voting = 2
     PosVoting = 3
+
+    @staticmethod
+    def get_description(value: int):
+        if value==1:
+            return "Pré-votação"
+        elif value==2:
+            return "Votação"
+        elif value==3:
+            return "Pós-votação"
+        else:
+            None

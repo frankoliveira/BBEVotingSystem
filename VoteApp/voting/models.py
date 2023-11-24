@@ -17,13 +17,14 @@ class Election(models.Model):
 
     id_author = models.ForeignKey(to=CustomUser, on_delete=models.DO_NOTHING, related_name='elections', db_column='id_autor')
     tittle = models.CharField(verbose_name='Titulo', max_length=200, help_text="Máximo 200 caracteres", db_column='titulo')
-    description = models.CharField(verbose_name='Descrição', max_length=300, help_text='Máximo 300 caracteres', db_column='descricao')
+    description = models.TextField(verbose_name='Descrição', max_length=300, help_text='Máximo 300 caracteres', db_column='descricao')
     creation = models.DateTimeField(verbose_name='Criação', auto_now=True, db_column='criacao')
     start = models.DateTimeField(verbose_name='Início', auto_now=False, db_column='inicio') 
     end = models.DateTimeField(verbose_name='Fim', auto_now=False, db_column='fim')
     last_change = models.DateTimeField(verbose_name='Última Alteração', auto_now=True, db_column='ultima_alteracao')
     phase = models.IntegerField(verbose_name="Fase", choices=ELECTION_PHASE, default=ElectionPhaseEnum.PreVoting.value, db_column='fase')
     guid = models.CharField(verbose_name='guid', max_length=50, db_column='guid')
+    excluded = models.BooleanField(verbose_name="Excluído", default=False, db_column='excluded')
 
     class Meta:
         verbose_name = 'Eleição'
@@ -61,7 +62,7 @@ class Election(models.Model):
         '''
         return ElectionVoter.check_if_element_exists(id_election=id_election, id_user=id_user)
     
-    def is_in_voting_period(self):
+    def is_in_voting_period(self) -> bool:
         '''
         Verifica se ainda é possível votar na eleição.
         '''
@@ -74,15 +75,30 @@ class Election(models.Model):
         
         return True
     
+    def voting_period_ended(self) -> bool:
+        from datetime import datetime
+        from datetime import timezone
+        date_now = datetime.now(tz=timezone.utc)
+
+        if date_now > self.end:
+            return True
+        return False
+    
     def get_positions(self):
         '''
         Obtem os cargos de uma eleição.
         '''
         positions = Position.objects.filter(id_election=self.id) #retorna uma queryset vazia se não tiver resultados
-        if len(positions)>0:
-            return [position for position in positions]
-        return None
+        return [position for position in positions]
     
+    def get_election_voters(self):
+        election_voters = ElectionVoter.objects.filter(id_election=self.id)
+        return [election_voter for election_voter in election_voters]
+    
+    def get_total_votes_received(self) -> int:
+        election_voters = ElectionVoter.objects.filter(id_election=self.id, has_voted=True)
+        return len(election_voters)
+        
     def check_vote_validity(self, vote_form) -> bool:
         election_positions = self.get_positions()
 
@@ -137,7 +153,8 @@ class Election(models.Model):
             
             vote_string_format = json.dumps(vote_dict)
             transacao_id = "teste"
-            transacao_id = Orderer.create_transaction(input=vote_string_format)
+            #transacao_id = Orderer.create_transaction(input=vote_string_format)
+            transacao_id = "ID-PARA-TESTE"
 
             if not transacao_id:
                 return None
@@ -195,7 +212,20 @@ class Election(models.Model):
     def send_vote_to_blockchain(self, vote):
         pass
 
-    def election_count(self):
+    def vote_count(self):
+        '''
+        Decripta apenas a soma decriptada.
+        '''
+        candidacies = Candidacy.objects.filter(id_election=self.id)
+        private_key = self.load_private_key()
+
+        for candidacy in candidacies:
+            encrypted_received_votes = EncryptedNumber(public_key=private_key.public_key, ciphertext=int(candidacy.encrypted_received_votes))
+            decrypted_received_votes:int = private_key.decrypt(encrypted_number=encrypted_received_votes)
+            candidacy.decrypted_result = decrypted_received_votes
+            candidacy.save()
+
+    def election_parcial_count(self):
         from datetime import datetime, timezone
         #date_now = datetime.now(tz=timezone.utc)
         #if date_now > self.end:
@@ -221,6 +251,7 @@ class Position(models.Model):
     order = models.IntegerField(verbose_name="Ordem", default=1, db_column='ordem')
     description = models.TextField(verbose_name="Descrição", max_length=100, db_column='descricao')
     last_change = models.DateTimeField(verbose_name='Útima alteração', auto_now=True, db_column='ultima_alteracao')
+    excluded = models.BooleanField(verbose_name="Excluído", default=False, db_column='excluded')
 
     class Meta:
         verbose_name = 'Cargo'
@@ -255,6 +286,7 @@ class Candidacy(models.Model):
     encrypted_received_votes = models.CharField(verbose_name='Votos recebidos', max_length=300, default='', help_text='Máximo 300 caracteres', null=True, db_column='votos_recebidos')
     decrypted_result = models.IntegerField(verbose_name="Resultado", default=None, null=True, db_column='resultado')
     last_change = models.DateTimeField(verbose_name='Última alteração', auto_now=True, db_column='ultima_alteracao')
+    excluded = models.BooleanField(verbose_name="Excluído", default=False, db_column='excluded')
 
     class Meta:
         verbose_name = 'Candidatura'
@@ -296,6 +328,7 @@ class ElectionVoter(models.Model):
     id_election = models.ForeignKey(to=Election, on_delete=models.DO_NOTHING, related_name='election_voters', db_column='id_eleicao')
     id_user = models.ForeignKey(to=CustomUser, on_delete=models.DO_NOTHING, db_column='id_autor')
     has_voted = models.BooleanField(verbose_name="Votou", default=False, db_column='votou')
+    excluded = models.BooleanField(verbose_name="Excluído", default=False, db_column='excluded')
 
     class Meta:
         verbose_name = 'Eleitor Elegível'

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row flex-grow-1 align-items-center justify-content-center">
+    <main class="col">
+        <h1>{{ election.tittle }}</h1>
+        <div>
+            <h3>{{ election.description }}</h3>
+        </div>
+
+        <hr>
+
+        <div class="row mb-3">
+            <div class="col-2">
+                <strong>Inicio</strong>: {{ election.start|date:"d/m/Y, H:i" }}
+            </div>
+            <div class="col-2">
+                <strong>Fim</strong>: {{ election.end|date:"d/m/Y, H:i" }}
+            </div>
+            <div class="col-2">
+                <strong>Fase</strong>: {{ election_phase_description }}
+            </div>
+            <div class="col-2">
+                <strong>Número de eleitores</strong>: {{ total_election_voters }}
+            </div>
+        </div>
+
+        {% if election.phase == 2 or election.phase == 3 %}
+        <div class="row mb-3">
+            <div class="col-2">
+                <strong>Votos recebidos</strong>: {{ total_votes_received }}
+            </div>
+            <div class="col-3">
+                <strong>Participação</strong>: {{ participation_percentage }}%
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row mb-3">
+            <div class="col">
+                <a href="#" class="btn btn-secondary">
+                    Eleitores
+                </a>
+                <a href="#" class="btn btn-secondary">
+                    Cargos
+                </a>
+                <a href="#" class="btn btn-secondary">
+                    Candidaturas
+                </a>
+                {% if election.phase == 3 %}
+                <a href="#" class="btn btn-info">
+                    Resultados
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row mb-3">
+            {% if election.phase == 1 %}
+            <div class="col-1">
+                <a href="{% url 'atualizar-eleicao' pk=election.id %}" class="btn btn-primary">
+                    Editar
+                </a>
+            </div>
+            {% endif %}
+
+            {% if vote_count_allowed %}
+            <div class="col-1">
+                <a href="{% url 'apurar-eleicao-gerenciador' pk=election.id %}" class="btn btn-success">
+                    Apurar
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+    </main>
+</div>
+
+{% endblock %}
