@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row flex-grow-1 align-items-center justify-content-center">
+    <main class="col">
+        <h1 class="text-primary">Gerenciar Eleitores</h1>
+
+        <div>
+            <h3>{{ election.tittle }}</h3>
+        </div>
+
+        <div class="mb-3">
+            <a class="btn btn-primary" href="{% url 'eleitores-criacao-gerenciador' pk=election.id %}">Adicionar Eleitor</a>
+        </div>
+        
+        <table class="table table-striped table-primary table-hover table-bordered">
+            <thead>
+            <tr>
+                <th scope="col">Nome</th>
+                <th scope="col">E-mail</th>
+                {% if election.phase == 1 %}
+                <th scope="col">Ações</th>
+                {% endif %}
+            </tr>
+            </thead>
+            <tbody>
+                {% for voter in page_obj %}
+                <tr class="table-light">
+                    <td>{{ voter.id_user.get_full_name }}</td>
+                    <td>{{ voter.id_user.get_email }}</td>
+                    {% if election.phase == 1 %}
+                    <td>
+                        <a href="#" class="text-primary">
+                            <span class="material-icons" title="Excluir">delete</span>
+                        </a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <span class="current">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        <div class="btn-group" role="group">
+            {% if page_obj.has_previous %}
+            <a class="btn btn-outline-primary" href="?page=1">Primeiro</a>
+            <a class="btn btn-outline-primary" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+            {% endif %}
+        
+            {% if page_obj.has_next %}
+            <a class="btn btn-outline-primary" href="?page={{ page_obj.next_page_number }}">Próximo</a>
+            <a class="btn btn-outline-primary" href="?page={{ page_obj.paginator.num_pages }}">Último</a>
+            {% endif %}
+        </div>
+        
+        <!--
+        <nav aria-label="Page navigation example">
+            <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+              </li>
+            {% else %}
+                <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="True">Previous</a>
+              </li>
+            {% endif %}
+    
+            {% if page_obj.number|add:'-4' > 1 %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.number|add:'-5' }}">&hellip;</a></li>
+            {% endif %}
+    
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <li class="page-item active" aria-current="page">
+                  <span class="page-link">
+                    {{ i }}
+                    <span class="sr-only"></span>
+                  </span>
+                </li>
+                {% elif i > page_obj.number|add:'-5' and i < page_obj.number|add:'5' %}
+                     <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                {% endif %}
+            {% endfor %}
+    
+            {% if page_obj.paginator.num_pages > page_obj.number|add:'4' %}
+               <li class="page-item"><a class="page-link" href="?page={{ page_obj.number|add:'5' }}">&hellip;</a></li>
+            {% endif %}
+    
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+              </li>
+            {% else %}
+                <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1" aria-disabled="True">Next</a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+        -->
+
+        <div class="row mt-3">
+            <div class="col">
+                <a class="btn btn-primary" href="{% url 'eleicao-gerenciador' pk=election.id %}">Voltar</a>
+            </div>
+        </div>
+    </main>
+</div>
+
+{% endblock %}

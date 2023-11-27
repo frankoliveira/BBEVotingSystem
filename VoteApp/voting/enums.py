@@ -14,7 +14,7 @@ class ElectionPhaseEnum(Enum):
     PosVoting = 3
 
     @staticmethod
-    def get_description(value: int):
+    def get_description(value: int) -> str:
         if value==1:
             return "Pré-votação"
         elif value==2:

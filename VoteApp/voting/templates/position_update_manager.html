@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row flex-grow-1 align-items-center justify-content-center">
+    <main class="col-12 col-lg-6">
+		<form action="{% url 'cargo-gerenciador' pk=id_position %}" method="POST" autocomplete="off">
+			{% csrf_token %}
+
+			<h1 class="text-primary">Atualizar Cargo</h1>
+
+			<div>
+				<h3>{{ election.tittle }}</h3>
+			</div>
+
+			<div class="row mb-3">
+				<div class="col-12">
+					<label for="{{form.order.id_for_label}}"><b>Ordem</b></label>
+					<input type="number" id="{{form.order.id_for_label}}" name="order" value="{{form.order.value}}" 
+					class="form-control" placeholder="Informe a ordem" required autofocus>
+				</div>
+			</div>
+			
+			<div class="row mb-3">
+				<div class="col-12">
+					<label for="{{form.description.id_for_label}}"><b>Descrição</b></label>
+					<br>
+					<textarea id="{{form.description.id_for_label}}" name="description" 
+						class="w-100" placeholder="Informe a descrição" required autofocus cols="50" rows="2">{{ form.description.value }}</textarea>
+				</div>
+			</div>
+
+			<div class="row justify-content-center">
+				<div class="col-12 col-lg-6">
+					<button class="btn btn-lg btn-primary btn-block w-100" type="submit">Atualizar</button>
+				</div>
+			</div>
+
+		</form>
+	</main>
+</div>
+{% endblock %}

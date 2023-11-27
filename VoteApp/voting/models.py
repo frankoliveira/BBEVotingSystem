@@ -91,6 +91,9 @@ class Election(models.Model):
         positions = Position.objects.filter(id_election=self.id) #retorna uma queryset vazia se não tiver resultados
         return [position for position in positions]
     
+    def get_phase_description(self):
+        return ElectionPhaseEnum.get_description(value=self.phase)
+    
     def get_election_voters(self):
         election_voters = ElectionVoter.objects.filter(id_election=self.id)
         return [election_voter for election_voter in election_voters]
@@ -269,6 +272,14 @@ class Position(models.Model):
         if len(candidacies)>0:
             return [candidacy for candidacy in candidacies]
         return None
+    
+    @staticmethod
+    def get_element_by_id(id: int):
+        try:
+            position = Position.objects.get(id=id)
+            return position
+        except Position.DoesNotExist:
+            return None
 
 class Candidacy(models.Model):
     CANDIDACY_TYPE_CHOICES = (

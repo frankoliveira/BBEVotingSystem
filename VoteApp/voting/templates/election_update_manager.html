@@ -2,14 +2,14 @@
 {% block content %}
 <div class="row flex-grow-1 align-items-center justify-content-center">
     <main class="col-12 col-lg-6">
-		<form method="POST" autocomplete="off">
+		<form action="{% url 'eleicao-gerenciador' pk=election.id %}" method="POST" autocomplete="off">
 			{% csrf_token %}
 			
-			<h1 class="h3 mb-3 font-weight-normal">Atualizar Eleição</h1>
+			<h1 class="h3 mb-3 font-weight-normal text-primary">Atualizar Eleição</h1>
 
 			<div class="row mb-3">
 				<div class="col-12">
-					<label for="tittle"><b>Título</b></label>
+					<label for="{{form.tittle.id_for_label}}"><b>Título</b></label>
 					<input type="text" id="{{form.tittle.id_for_label}}" name="tittle" value="{{form.tittle.value}}" 
 					class="form-control" placeholder="Informe o título" required autofocus>
 				</div>
@@ -17,7 +17,7 @@
 
 			<div class="row mb-3">
 				<div class="col-12">
-					<label for="description"><b>Descrição</b></label>
+					<label for="{{form.description.id_for_label}}"><b>Descrição</b></label>
 					<br>
 					<textarea id="{{form.description.id_for_label}}" name="description" 
 					class="w-100" placeholder="Informe a descrição" required autofocus cols="50" rows="2">{{form.description.value}}</textarea>
@@ -26,12 +26,12 @@
 
 			<div class="row mb-3">
 				<div class="col-12 col-lg-6">
-					<label for="start"><b>Início</b></label>
+					<label for="{{form.start.id_for_label}}"><b>Início</b></label>
 					<input type="datetime-local" id="{{form.start.id_for_label}}" name="start" value="{{form.start.value|date:"Y-m-d H:i"}}" class="form-control" placeholder="Início" required autofocus>
 				</div>
 
 				<div class="col-12 col-lg-6">
-					<label for="end"><b>Fim</b></label>
+					<label for="{{form.end.id_for_label}}"><b>Fim</b></label>
 					<input type="datetime-local" id="{{form.end.id_for_label}}" name="end" value="{{form.end.value|date:"Y-m-d H:i"}}" class="form-control" placeholder="Fim" required autofocus>
 				</div>
 			</div>

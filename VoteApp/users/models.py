@@ -54,5 +54,11 @@ class CustomUser(AbstractUser):
     
     def get_image(self):
         return self.image
+    
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}"
+    
+    def get_email(self):
+        return self.email
 
     objects = UsuarioManager()

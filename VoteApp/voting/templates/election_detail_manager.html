@@ -3,7 +3,7 @@
 
 <div class="row flex-grow-1 align-items-center justify-content-center">
     <main class="col">
-        <h1>{{ election.tittle }}</h1>
+        <h1 class="text-primary">{{ election.tittle }}</h1>
         <div>
             <h3>{{ election.description }}</h3>
         </div>
@@ -38,10 +38,10 @@
 
         <div class="row mb-3">
             <div class="col">
-                <a href="#" class="btn btn-secondary">
+                <a href="{% url 'eleitores-gerenciador' pk=election.id %}" class="btn btn-secondary">
                     Eleitores
                 </a>
-                <a href="#" class="btn btn-secondary">
+                <a href="{% url 'cargos-gerenciador' pk=election.id %}" class="btn btn-secondary">
                     Cargos
                 </a>
                 <a href="#" class="btn btn-secondary">
@@ -58,23 +58,22 @@
         <hr>
 
         <div class="row mb-3">
-            {% if election.phase == 1 %}
-            <div class="col-1">
-                <a href="{% url 'atualizar-eleicao' pk=election.id %}" class="btn btn-primary">
-                    Editar
+            <div class="col">
+                <a href="{% url 'eleicoes-gerenciador' %}" class="btn btn-primary">
+                    Voltar
                 </a>
-            </div>
-            {% endif %}
-
-            {% if vote_count_allowed %}
-            <div class="col-1">
+                {% if election.phase == 1 %}
+                <a href="{% url 'atualizacao-eleicao' pk=election.id %}" class="btn btn-primary">
+                     Editar
+                </a>
+                {% endif %}
+                {% if vote_count_allowed %}
                 <a href="{% url 'apurar-eleicao-gerenciador' pk=election.id %}" class="btn btn-success">
                     Apurar
                 </a>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
-
     </main>
 </div>
 

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row flex-grow-1 align-items-center justify-content-center">
+    <main class="col">
+        <h1 class="text-primary">Adicionar Eleitores</h1>
+
+        <div>
+            <h3>{{ election.tittle }}</h3>
+        </div>
+        
+        <form action="{% url 'eleitores-gerenciador' pk=election.id %}" method="POST" autocomplete="off">
+			{% csrf_token %}
+
+			<div class="row mb-3">
+                <div class="col-12">
+                    {% for user in page_obj %}
+                    <div class="form-check">
+                        {% if user.id in election_voters_id_list %}
+                        <input class="form-check-input" type="checkbox" value="{{user.id}}" id="id_users_list" name="id_users_list" checked disabled>
+                        {% else %}
+                        <input class="form-check-input" type="checkbox" value="{{user.id}}" id="id_users_list" name="id_users_list">
+                        {% endif %}
+                        <label class="form-check-label" for="id_user">
+                            {{ user.get_full_name}} ({{ user.email }})
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+			</div>
+
+            <input type="number" id="page_number" name="page_number" value="{{page_obj.number}}" hidden>
+
+			<div class="row justify-content-center">
+				<div class="col-12 col-lg-6">
+					<button class="btn btn-lg btn-primary btn-block w-100" type="submit">Salvar</button>
+				</div>
+			</div>
+		</form>
+
+        <span class="current">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        <div class="btn-group" role="group">
+            {% if page_obj.has_previous %}
+            <a class="btn btn-outline-primary" href="?page=1">Primeiro</a>
+            <a class="btn btn-outline-primary" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+            {% endif %}
+        
+            {% if page_obj.has_next %}
+            <a class="btn btn-outline-primary" href="?page={{ page_obj.next_page_number }}">Próximo</a>
+            <a class="btn btn-outline-primary" href="?page={{ page_obj.paginator.num_pages }}">Último</a>
+            {% endif %}
+        </div>
+
+        <div class="row mt-3">
+            <div class="col">
+                <a class="btn btn-primary" href="{% url 'eleicao-gerenciador' pk=election.id %}">Voltar</a>
+            </div>
+        </div>
+    </main>
+</div>
+
+{% endblock %}
