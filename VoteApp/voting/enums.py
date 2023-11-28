@@ -4,6 +4,15 @@ class CandidacyTypeEnum(Enum):
     Candidate = 1
     ElectoralPlate = 2 #chapa
 
+    @staticmethod
+    def get_description(value: int) -> str:
+        if value==1:
+            return "Candidato"
+        elif value==2:
+            return "Chapa"
+        else:
+            None
+
 class VoteTypeEnum(Enum):
     Valid = 1
     Null = 2

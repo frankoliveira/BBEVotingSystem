@@ -10,19 +10,24 @@ urlpatterns = [
     #GET(lista eleições) | POST (criar)
     path('gerenciador/eleicoes/', views.election_list_manager, name='eleicoes-gerenciador'),
     #GET(lista cargos de uma eleição)
-    path('gerenciador/eleicoes/<int:pk>/cargos/', views.election_positions_list_manager, name='cargos-gerenciador'),
+    path('gerenciador/eleicoes/<int:pk>/cargos/', views.election_position_list_manager, name='cargos-gerenciador'),
     #GET(lista eleitores de uma eleição)
-    path('gerenciador/eleicoes/<int:pk>/eleitores/', views.election_voters_list_manager, name='eleitores-gerenciador'),
+    path('gerenciador/eleicoes/<int:pk>/eleitores/', views.election_voter_list_manager, name='eleitores-gerenciador'),
+    path('gerenciador/eleicoes/<int:pk>/candidaturas/', views.election_candidacy_list_manager, name='candidaturas-gerenciador'),
     
     #GET(por id) | POST (atualizar)
     path('gerenciador/eleicoes/<int:pk>/', views.election_detail_manager, name='eleicao-gerenciador'),
     #POST(atualizar cargo)
     path('gerenciador/eleicoes/cargos/<int:pk>/', views.position_detail_manager, name='cargo-gerenciador'),
+    #DELETE(por id)
+    path('gerenciador/eleicoes/eleitores/<int:pk>/', views.election_voter_detail_manager, name='eleitor-gerenciador'),
     
-    #Página para o formulário de criação
+    #Páginas para o formulário de criação
     path('gerenciador/eleicoes/criacao/', views.election_creation_manager, name='eleicoes-criacao-gerenciador'),
     path('gerenciador/eleicoes/<int:pk>/cargos/criacao/', views.election_position_creation_manager, name='cargos-criacao-gerenciador'),
     path('gerenciador/eleicoes/<int:pk>/eleitores/criacao/', views.election_voter_creation_manager, name='eleitores-criacao-gerenciador'),
+    path('gerenciador/eleicoes/<int:pk>/candidaturas/criacao/', views.election_candidacy_creation_manager, 
+         name='candidaturas-criacao-gerenciador'),
 
     #Páginas para o formulário de atualização
     path('gerenciador/eleicoes/atualizacao/<int:pk>/', views.election_update_manager, name='atualizacao-eleicao'),

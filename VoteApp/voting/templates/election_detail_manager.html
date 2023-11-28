@@ -2,7 +2,7 @@
 {% block content %}
 
 <div class="row flex-grow-1 align-items-center justify-content-center">
-    <main class="col">
+    <main class="col mt-5 mb-3">
         <h1 class="text-primary">{{ election.tittle }}</h1>
         <div>
             <h3>{{ election.description }}</h3>
@@ -44,7 +44,7 @@
                 <a href="{% url 'cargos-gerenciador' pk=election.id %}" class="btn btn-secondary">
                     Cargos
                 </a>
-                <a href="#" class="btn btn-secondary">
+                <a href="{% url 'candidaturas-gerenciador' pk=election.id %}" class="btn btn-secondary">
                     Candidaturas
                 </a>
                 {% if election.phase == 3 %}

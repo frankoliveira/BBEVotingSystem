@@ -2,8 +2,8 @@
 {% block content %}
 
 <div class="row flex-grow-1 align-items-center justify-content-center">
-    <main class="col">
-        <h1 class="text-primary">Gerenciar Cargos</h1>
+    <main class="col mt-5 mb-3">
+        <h1 class="text-primary">Gerenciar Candidaturas</h1>
 
         <div>
             <h3>{{ election.tittle }}</h3>
@@ -11,25 +11,29 @@
 
         {% if election.phase == 1 %}
         <div class="mb-3">
-            <a class="btn btn-primary" href="{% url 'cargos-criacao-gerenciador' pk=election.id %}">Criar cargo</a>
+            <a class="btn btn-primary" href="{% url 'candidaturas-criacao-gerenciador' pk=election.id %}">Criar candidatura</a>
         </div>
         {% endif %}
-    
+        
+        {% for position in positions %}
+        <h4>Candidaturas para {{ position.name }}</h4>
         <table class="table table-striped table-primary table-hover table-bordered">
             <thead>
             <tr>
-                <th scope="col">Descrição</th>
-                <th scope="col">Ordem</th>
+                <th scope="col">Número</th>
+                <th scope="col">Nome</th>
+                <th scope="col">Tipo</th>
                 {% if election.phase == 1 %}
                 <th scope="col">Ações</th>
                 {% endif %}
             </tr>
             </thead>
             <tbody>
-                {% for position in positions %}
+                {% for candidacy in position.get_candidacies %}
                 <tr class="table-light">
-                    <td>{{ position.description }}</td>
-                    <td>{{ position.order }}</td>
+                    <td>{{ candidacy.number }}</td>
+                    <td>{{ candidacy.name }}</td>
+                    <td>{{ candidacy.get_type_description }}</td>
                     {% if election.phase == 1 %}
                     <td>
                         <a href="{% url 'cargo-atualizacao-gerenciador' pk=position.id %}" class="text-primary">
@@ -41,6 +45,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% endfor %}
 
         <div class="row">
             <div class="col">

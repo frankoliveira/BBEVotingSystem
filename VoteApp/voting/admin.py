@@ -8,7 +8,7 @@ class ElectionModelAdmin(admin.ModelAdmin):
 
 @admin.register(Position)
 class PositionModelAdmin(admin.ModelAdmin):
-    list_display = ('id_election', 'description')
+    list_display = ('id_election', 'name')
 
 @admin.register(Candidacy)
 class CandidacyModelAdmin(admin.ModelAdmin):

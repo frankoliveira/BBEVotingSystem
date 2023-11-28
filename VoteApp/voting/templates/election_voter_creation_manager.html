@@ -2,7 +2,7 @@
 {% block content %}
 
 <div class="row flex-grow-1 align-items-center justify-content-center">
-    <main class="col">
+    <main class="col-12 col-lg-6 mt-5 mb-3">
         <h1 class="text-primary">Adicionar Eleitores</h1>
 
         <div>
@@ -56,7 +56,7 @@
 
         <div class="row mt-3">
             <div class="col">
-                <a class="btn btn-primary" href="{% url 'eleicao-gerenciador' pk=election.id %}">Voltar</a>
+                <a class="btn btn-primary" href="{% url 'eleitores-gerenciador' pk=election.id %}">Voltar</a>
             </div>
         </div>
     </main>

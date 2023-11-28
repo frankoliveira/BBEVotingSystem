@@ -88,7 +88,7 @@ class Election(models.Model):
         '''
         Obtem os cargos de uma eleição.
         '''
-        positions = Position.objects.filter(id_election=self.id) #retorna uma queryset vazia se não tiver resultados
+        positions = Position.objects.filter(id_election=self.id).order_by("order") #retorna uma queryset vazia se não tiver resultados
         return [position for position in positions]
     
     def get_phase_description(self):
@@ -132,7 +132,7 @@ class Election(models.Model):
                 candidacies = position.get_candidacies()
                 position_vote = {
                     'id_cargo': position.id,
-                    'descricao_cargo': position.description,
+                    'descricao_cargo': position.name,
                     'voto': {}
                 }
 
@@ -252,7 +252,7 @@ class Election(models.Model):
 class Position(models.Model):
     id_election = models.ForeignKey(Election, on_delete=models.DO_NOTHING, related_name='positions', db_column='id_eleicao')
     order = models.IntegerField(verbose_name="Ordem", default=1, db_column='ordem')
-    description = models.TextField(verbose_name="Descrição", max_length=100, db_column='descricao')
+    name = models.TextField(verbose_name="Nome", max_length=100, db_column='nome')
     last_change = models.DateTimeField(verbose_name='Útima alteração', auto_now=True, db_column='ultima_alteracao')
     excluded = models.BooleanField(verbose_name="Excluído", default=False, db_column='excluded')
 
@@ -262,7 +262,7 @@ class Position(models.Model):
         ordering = ['id']
 
     def __str__(self) -> str:
-        return self.description
+        return self.name
     
     def get_candidacies(self):
         '''
@@ -319,6 +319,9 @@ class Candidacy(models.Model):
         except Candidacy.DoesNotExist:
             return None
         
+    def get_type_description(self):
+        return CandidacyTypeEnum.get_description(value=self.type)
+        
     @staticmethod
     def check_if_element_exists(id_election: int, id_position:int, number: int):
         return Candidacy.objects.filter(id_election=id_election, id_position=id_position, number=number).exists()
@@ -362,6 +365,14 @@ class ElectionVoter(models.Model):
         if len(result)>0:
             return result[0]
         return None
+    
+    @staticmethod
+    def get_element_by_id(id: int):
+        try:
+            election_voter = ElectionVoter.objects.get(id=id)
+            return election_voter
+        except ElectionVoter.DoesNotExist:
+            return None
 
 class Vote(models.Model):
     id_election = models.ForeignKey(to=Election, on_delete=models.DO_NOTHING, related_name='votes', db_column='id_eleicao')

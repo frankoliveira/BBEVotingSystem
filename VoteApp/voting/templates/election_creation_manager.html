@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="row flex-grow-1 align-items-center justify-content-center">
-    <main class="col-12 col-lg-6">
+    <main class="col-12 col-lg-6 mt-5 mb-3">
 		<form action="{% url 'eleicoes-gerenciador' %}" method="POST" autocomplete="off">
 			{% csrf_token %}
 			
@@ -18,7 +18,7 @@
 				<div class="col-12">
 					<label for="description"><b>Descrição</b></label>
 					<br>
-					<textarea name="description" id="description" class="w-100" placeholder="Informe a descrição" required autofocus cols="50" rows="2"></textarea>
+					<textarea name="description" id="description" class="w-100 form-control" placeholder="Informe a descrição" required autofocus cols="50" rows="2"></textarea>
 				</div>
 			</div>
 

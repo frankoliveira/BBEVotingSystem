@@ -13,7 +13,7 @@ class PositionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Position
-        fields = ['id', 'id_election', 'order', 'description', 'last_change', 'candidacies']
+        fields = ['id', 'id_election', 'order', 'name', 'last_change', 'candidacies']
 
 class ElectionVoterIdUserSerializer(serializers.ModelSerializer):
     class Meta:

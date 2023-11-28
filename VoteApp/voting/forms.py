@@ -17,25 +17,20 @@ class ElectionUpdtateForm(ModelForm):
 class PositionCreateForm(ModelForm):
     class Meta:
         model = Position
-        fields = ['id_election', 'order', 'description']
+        fields = ['id_election', 'order', 'name']
 
 class PositionUpdateForm(ModelForm):
     class Meta:
         model = Position
-        fields = ['order', 'description']
-
-'''class ElectionVoterCreateForm(ModelForm):
-    class Meta:
-        model = ElectionVoter
-        fields = ['id_election', 'id_user']'''
+        fields = ['order', 'name']
 
 class CandidacyCreateForm(ModelForm):
-
     class Meta:
-        model: Candidacy
-        fields = ['id_election', 'id_position', 'candidates', 'type', 'number', 'name', 'description']
+        model = Candidacy
+        fields = ['id_election', 'id_position', 'type', 'number', 'name', 'description']
 
         '''
+        fields = ['id_election', 'id_position', 'candidates', 'type', 'number', 'name', 'description']
         CANDIDACY_TYPE_CHOICES = (
             (CandidacyTypeEnum.Candidate.value, 'Candidato'),
             (CandidacyTypeEnum.ElectoralPlate.value, 'Chapa')

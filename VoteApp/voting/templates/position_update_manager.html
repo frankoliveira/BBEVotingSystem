@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="row flex-grow-1 align-items-center justify-content-center">
-    <main class="col-12 col-lg-6">
+    <main class="col-12 col-lg-6 mt-5 mb-3">
 		<form action="{% url 'cargo-gerenciador' pk=id_position %}" method="POST" autocomplete="off">
 			{% csrf_token %}
 
@@ -21,10 +21,9 @@
 			
 			<div class="row mb-3">
 				<div class="col-12">
-					<label for="{{form.description.id_for_label}}"><b>Descrição</b></label>
+					<label for="{{form.name.id_for_label}}"><b>Nome</b></label>
 					<br>
-					<textarea id="{{form.description.id_for_label}}" name="description" 
-						class="w-100" placeholder="Informe a descrição" required autofocus cols="50" rows="2">{{ form.description.value }}</textarea>
+					<input type="text" id="{{form.name.id_for_label}}" name="name" class="form-control" placeholder="Informe a descrição" value="{{form.name.value}}" required>
 				</div>
 			</div>
 

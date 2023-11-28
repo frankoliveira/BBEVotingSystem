@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="row flex-grow-1 align-items-center justify-content-center">
-    <main class="col">
-        <h1>{{ election.tittle }}</h1>
+    <main class="col mt-5 mb-3">
+        <h1 class="text-primary">{{ election.tittle }}</h1>
         <div>
             <h3>{{ election.description }}</h3>
         </div>
         <hr>
 
         {% for position in election.positions %}
-        <h4>Candidaturas para {{ position.description }}</h4>
-        <table class="table table-primary table-hover table-bordered">
+        <h4>Candidaturas para {{ position.name }}</h4>
+        <table class="table table-striped table-primary table-hover table-bordered">
             <thead>
                 <tr>
                 <th scope="col">Número</th>
@@ -21,7 +21,7 @@
 
             <tbody>
                 {% for candidacy in position.candidacies %}
-                <tr class="table-info">
+                <tr class="table-light">
                     <td>{{ candidacy.number }}</td>
                     <td>{{ candidacy.name }}</td>
                     <td>{{ candidacy.description }}</td>

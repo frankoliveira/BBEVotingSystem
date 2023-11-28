@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row flex-grow-1 align-items-center justify-content-center">
+    <main class="col-12 col-lg-6 mt-5 mb-3">
+		<form action="{% url 'candidaturas-gerenciador' pk=election.id %}" method="POST" autocomplete="off">
+			{% csrf_token %}
+
+			<h1 class="h3 mb-3 font-weight-normal text-primary">Criar Candidatura</h1>
+
+			<div>
+				<h3>{{ election.tittle }}</h3>
+			</div>
+			
+			<input type="integer" id="{{ form.id_election.id_for_label }}" name="id_election" value="{{election.id}}" hidden>
+            
+            <div class="row mb-3">
+				<div class="col-6">
+                    <label for="{{ form.id_position.id_for_label }}"><b>Cargo</b></label>
+                    <select class="form-select" id="{{ form.id_position.id_for_label }}" name="id_position" required autofocus>
+                        {% for position in positions %}
+                        <option value="{{position.id}}">{{position.name}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+				<div class="col-6">
+                    <label for="{{ form.type.id_for_label }}"><b>Tipo</b></label>
+                    <select class="form-select" id="{{ form.type.id_for_label }}" name="type" required>
+                        {% for t in types %}
+                        <option value="{{t.value}}">{{t.key}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+			</div>
+
+            <div class="row mb-3">
+				<div class="col-12">
+					<label for="{{form.name.id_for_label}}"><b>Nome</b></label>
+					<input type="text" id="{{form.name.id_for_label}}" name="name" class="form-control" placeholder="Informe o nome" required>
+				</div>
+			</div>
+			
+			<div class="row mb-3">
+				<div class="col-12">
+					<label for="{{form.description.id_for_label}}"><b>Descrição</b></label>
+					<br>
+					<textarea id="{{form.description.id_for_label}}" name="description" class="w-100 form-control" placeholder="Informe a descrição" required cols="50" rows="2"></textarea>
+				</div>
+			</div>
+
+            <div class="row mb-3">
+				<div class="col-12">
+					<label for="{{form.number.id_for_label}}"><b>Número</b></label>
+					<input type="number" id="{{form.number.id_for_label}}" name="number" class="form-control" placeholder="Informe o número" required>
+				</div>
+			</div>
+
+			<div class="row justify-content-center">
+				<div class="col-12 col-lg-6">
+					<button class="btn btn-lg btn-primary btn-block w-100" type="submit">Criar</button>
+				</div>
+			</div>
+		</form>
+	</main>
+</div>
+{% endblock %}

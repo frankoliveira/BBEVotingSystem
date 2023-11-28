@@ -1,11 +1,11 @@
 #Model
 from users.models import CustomUser
-from voting.models import Election, Position, Candidacy, ElectionVoter, ElectionPhaseEnum
+from voting.models import Election, Position, Candidacy, ElectionVoter, ElectionPhaseEnum, CandidacyTypeEnum
 from security.PheManager import PheManager
 
 #Forms
 from voting.forms import ElectionCreateForm, ElectionUpdtateForm, PositionCreateForm, PositionUpdateForm
-from voting.forms import CandidacyCreateForm
+from voting.forms import CandidacyCreateForm, CandidacyCreateForm
 #Serializer
 from voting.serializers import ElectionSerializer, CandidacySerializer
 
@@ -129,7 +129,7 @@ def election_list_manager(request, format=None):
         paginator = Paginator(object_list=election_list, per_page=10)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
-        return render(request, "elections_manager.html", {"page_obj": page_obj})
+        return render(request, "election_list_manager.html", {"page_obj": page_obj})
     
     if request.method == 'POST':
         try:
@@ -146,7 +146,7 @@ def election_list_manager(request, format=None):
             messages.warning(request, 'Ocorreu um erro.')
             return redirect('eleicoes-criacao-gerenciador')
 
-def election_positions_list_manager(request, pk, format=None):
+def election_position_list_manager(request, pk, format=None):
     id_eleicao = pk
     election = Election.get_element_by_id(id=id_eleicao)
 
@@ -161,7 +161,7 @@ def election_positions_list_manager(request, pk, format=None):
                 "election": election,
                 "positions": positions
             }
-            return render(request=request, template_name="election_positions_manager.html", context=context)
+            return render(request=request, template_name="election_position_list_manager.html", context=context)
         except Exception as ex:
             print('GET election_positions_list_manager exception: ', ex)
             messages.warning(request, 'Ocorreu um erro ao consultar cardos.')
@@ -179,7 +179,7 @@ def election_positions_list_manager(request, pk, format=None):
                 #position.id_election = election
                 position.save()
                 return redirect('cargos-gerenciador', pk=election.id)
-            print('erros no formulário do cargo: ', form.errors)
+            #print('erros no formulário do cargo: ', form.errors)
             messages.error(request, "Erro ao criar cargo")
             context={
                 "election": election,
@@ -191,7 +191,7 @@ def election_positions_list_manager(request, pk, format=None):
             messages.warning(request, 'Ocorreu um erro.')
             return redirect('eleicoes-criacao-gerenciador')
 
-def election_voters_list_manager(request, pk, format=None):
+def election_voter_list_manager(request, pk, format=None):
     id_eleicao = pk
     election = Election.get_element_by_id(id=id_eleicao)
 
@@ -208,7 +208,7 @@ def election_voters_list_manager(request, pk, format=None):
             "election": election,
             "page_obj": page_obj
         }
-        return render(request, "election_voters_list_manager.html", context=context)
+        return render(request, "election_voter_list_manager.html", context=context)
     
     if request.method == 'POST':
         try:
@@ -226,6 +226,43 @@ def election_voters_list_manager(request, pk, format=None):
             print('POST election_voters_list_manager exception: ', ex)
             messages.warning(request, 'Ocorreu um erro.')
             return redirect('eleitores-criacao-gerenciador', pk=election.id)
+
+def election_candidacy_list_manager(request, pk, format=None):
+    id_eleicao = pk
+    election = Election.get_element_by_id(id=id_eleicao)
+
+    if election==None:
+        messages.warning(request, 'Eleição inexistente!')
+        return redirect('eleicoes-gerenciador')
+    
+    if request.method == 'GET':
+        try:
+            positions = election.get_positions()
+            context = {
+                "election": election,
+                "positions": positions
+            }
+            return render(request=request, template_name="election_candidacy_list_manager.html", context=context)
+        except Exception as ex:
+            print('GET election_positions_list_manager exception: ', ex)
+            messages.warning(request, 'Ocorreu um erro ao consultar cardos.')
+            return redirect('eleicoes-gerenciador')
+    
+    if request.method == 'POST':
+        try:
+            form = CandidacyCreateForm(request.POST)
+            print("post election_candidacy_list_manager", request.POST)
+            
+            if form.is_valid():
+                candidacy = form.save()
+                return redirect('eleicoes-gerenciador')
+            
+            messages.error(request, "Erro ao criar candidatura")
+            return redirect('candidaturas-criacao-gerenciador', pk=election.id)
+        except Exception as ex:
+            print('POST election_candidacy_list_manager exception: ', ex)
+            messages.warning(request, 'Ocorreu um erro.')
+            return redirect('eleicoes-gerenciador')
 
 @login_required
 def election_creation_manager(request):
@@ -245,7 +282,7 @@ def election_voter_creation_manager(request, pk, format=None):
         return redirect('eleicoes-gerenciador')
 
     if request.method == 'GET':
-        election_voters = ElectionVoter.objects.filter(id_election=id_election, excluded=False).select_related("id_user")
+        election_voters = ElectionVoter.objects.filter(id_election=id_election, excluded=False)
         election_voters_id_list = [voter.id_user.id for voter in election_voters]
         users_list = CustomUser.objects.all().order_by("first_name")
         paginator = Paginator(object_list=users_list, per_page=10)
@@ -258,6 +295,32 @@ def election_voter_creation_manager(request, pk, format=None):
             "page_obj": page_obj
         }
         return render(request, "election_voter_creation_manager.html", context=context)
+    
+def election_candidacy_creation_manager(request, pk, format=None):
+    id_election = pk
+    election = Election.get_element_by_id(id=id_election)
+
+    if election==None:
+        messages.warning(request, 'Eleição inexistente!')
+        return redirect('eleicoes-gerenciador')
+
+    if request.method == 'GET':
+        users = CustomUser.objects.all().order_by("first_name")
+        positions = election.get_positions()
+        CANDIDACY_TYPE_CHOICES = [
+            {"key": "Candidato", "value": CandidacyTypeEnum.Candidate.value},
+            {"key": "Chapa", "value": CandidacyTypeEnum.ElectoralPlate.value},
+        ]
+
+        form = CandidacyCreateForm()
+        context = {
+            "election": election,
+            "types": CANDIDACY_TYPE_CHOICES,
+            "users": users,
+            "positions": positions,
+            "form": form
+        }
+        return render(request=request, template_name="election_candidacy_creation_manager.html", context=context)
 
 def election_position_creation_manager(request, pk):
     '''
@@ -312,7 +375,7 @@ def position_update_manager(request, pk):
     position = Position.get_element_by_id(id=id_position)
 
     if position==None:
-        messages.warning(request, 'Eleição ou Cargo inexistente!')
+        messages.warning(request, 'Cargo inexistente!')
         return redirect('eleicoes-gerenciador')
     
     if request.method == 'GET':
@@ -373,6 +436,25 @@ def election_detail_manager(request, pk, format=None):
             return render(request=request, template_name="election_update_manager.html", context={"form": form})
         except Exception as ex:
             print('PUT election_update_manager exception: ', ex)
+            messages.warning(request, 'Ocorreu um erro.')
+            return redirect('eleicoes-gerenciador')
+
+@login_required
+def election_voter_detail_manager(request, pk, format=None):
+    id_election_voter = pk
+    election_voter = ElectionVoter.get_element_by_id(id=id_election_voter)
+
+    if election_voter==None:
+        messages.warning(request, 'Eleitor inexistente!')
+        return redirect('eleicoes-gerenciador')
+    
+    if request.method == 'DELETE':
+        try:
+            id_election:int = election_voter.id_election.id
+            election_voter.delete()
+            return redirect('eleitores-gerenciador', pk=id_election)
+        except Exception as ex:
+            print('DELETE election_voter_detail_manager exception: ', ex)
             messages.warning(request, 'Ocorreu um erro.')
             return redirect('eleicoes-gerenciador')
 
