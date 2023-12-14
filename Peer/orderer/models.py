@@ -5,7 +5,7 @@ from typing import Union
 import time
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
-import io, base64
+import io, base64, os, threading
 
 #Models
 from block.models import Block
@@ -23,12 +23,12 @@ from transaction.serializers import TransactionSerializer
 class Orderer():
     instance = None
     
-    def __init__(self) -> None:
-        self.peer_id = '127.0.0.1:8000'
-        self.transactions_per_block = 2
-        self.peer_private_key: RSAPrivateKey = CustomRSA.load_pem_private_key_from_file('rsa_keys/private_key.pem')
+    def __init__(self, peer_id:str, transactions_per_block:int, peer_private_key:RSAPrivateKey=None) -> None:
+        self.peer_id = peer_id
+        self.transactions_per_block = transactions_per_block
+        self.peer_private_key: RSAPrivateKey = peer_private_key
         
-        self.consensus_leader_id = '127.0.0.1:8000'
+        self.consensus_leader_id = None
         self.consensus_view: int = 1
         self.consensus_block_dict: dict = None
         self.consensus_block_hash: str = None
@@ -41,7 +41,19 @@ class Orderer():
     @classmethod
     def get_instance(self):
         if self.instance == None:
-            self.instance = self()
+
+            config_values = Orderer.get_config_from_json("./appsettings.json")
+            print('config: ', config_values)
+            self.instance = self(peer_id=f'{config_values["ip"]}:{config_values["port"]}', 
+                                 transactions_per_block=config_values["max_block_trxs"], 
+                                 peer_private_key=CustomRSA.load_pem_private_key_from_file('rsa_keys/private_key.pem'))
+            if config_values['start_as_leader']==1:
+                #pass
+                if Blockchain.get_last_block() == None:
+                    Blockchain.create_genesis_block()
+                thread_start_as_leader = threading.Thread(target=Orderer.start_as_leader, daemon=True)
+                thread_start_as_leader.start()
+            #exit(-1)
         return self.instance
     
     def load_consensus_peers(self):
@@ -80,6 +92,65 @@ class Orderer():
         '''
         _hash = sha256(data).hexdigest()
         return hash==_hash
+    
+    def start_as_leader():
+        keep_leading = True
+        while keep_leading:
+            try:
+                time.sleep(20)
+                Orderer.get_instance().broadcast_leadership()
+                time.sleep(10)
+                Orderer.propose_block()
+                print('tentanto novo lider')
+                new_leader_defined = Orderer.get_instance().set_new_leader()
+                if new_leader_defined:
+                    keep_leading = False
+                    print("não sou mais o líder")
+                    return
+            except Exception as ex:
+                print(f"erro start_as_leader: {ex}")
+
+    @staticmethod
+    def broadcast_leadership() -> None:
+        '''
+        static
+        Líder comunica sua liderança.
+        '''
+        orderer = Orderer.get_instance()
+        message = {
+            "peer_id": orderer.peer_id,
+        }
+
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
+        for peer in peers:
+            try:
+                url = f'http://{peer.host}:{peer.port}/new-leader/'
+                requests.post(url=url, json=message)
+            except Exception as ex:
+                print(f"erro broadcast_leadership: {ex}")
+    
+    @staticmethod
+    def set_new_leader() -> bool:
+        '''
+        Retorna true se algum peer aceitar o pedido para se tornar líder, ou false caso nenhum peer tenha aceitado.
+        '''
+        orderer = Orderer.get_instance()
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id).order_by('?')
+            
+        message = {
+            "peer_id": orderer.peer_id,
+        }
+            
+        for peer in peers:
+            try:
+                url = f'http://{peer.host}:{peer.port}/become-leader/'
+                response = requests.post(url=url, json=message)
+                if response.status_code == 200:
+                    return True
+            except Exception as ex:
+                print(f"erro set_new_leader: {ex}")
+            
+        return False
     
     @staticmethod
     def broadcast_pending_transaction(transction_dict: dict) -> None:
@@ -348,6 +419,15 @@ class Orderer():
                 orderer.get_remote_block(0)
         except Exception as ex:
             print(f"erro check_for_blockchain_update: {ex}")
+
+    @staticmethod
+    def get_config_from_json(config_path: str) -> dict:
+        if not os.path.exists(config_path):
+            return None
+        file = open(config_path, 'r')
+        config = json.load(file)
+        file.close()
+        return config
     
 class ConsensusPeer():
     def __init__(self, peer: Peer) -> None:

@@ -21,6 +21,8 @@ from datetime import datetime
 from rest_framework.decorators import api_view
 import threading
 
+orderer = Orderer.get_instance()
+
 @api_view(['POST']) 
 def pending_transaction(request, format=None):
     '''
@@ -41,6 +43,7 @@ def pending_transaction(request, format=None):
                 return Response("accepted", status=status.HTTP_201_CREATED)
             
             return Response(transaction_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         elif remote_peer.authorized:
             input = request.data['input']
             id = sha256(input.encode('utf-8')).hexdigest()
@@ -58,7 +61,7 @@ def pending_transaction(request, format=None):
                 transaction_serializer = TransactionSerializer(instance=transaction)
                 Orderer.broadcast_pending_transaction(transaction_serializer.data)
                 return Response(transaction_serializer.data, status=status.HTTP_201_CREATED)
-            return Response(data='Transação inválida', status=status.HTTP_400_BAD_REQUEST)
+        return Response(data='Transação inválida', status=status.HTTP_400_BAD_REQUEST)
 
 #inicia o consenso
 @api_view(['GET']) 
@@ -89,9 +92,9 @@ def pre_prepare(request, format=None):
             orderer = Orderer.get_instance()
             remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
 
-            if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.id==orderer.consensus_leader_id:
+            if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.id==orderer.consensus_leader_id and remote_peer.authorized:
                 block_serializer = BlockSerializer(data=request.data["block"])
-                
+                print(request.data["block"])
                 if block_serializer.is_valid():
                     pre_prepare_accepted = True
                     consensus_view = int(request.data["pre_prepare"]["view"])
@@ -150,7 +153,7 @@ def prepare(request, format=None):
     if request.method == 'POST':
         remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
         orderer = Orderer.get_instance()
-        if remote_peer!=None and remote_peer.is_publishing_node:
+        if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.authorized:
             prepare_accepted = True
             consensus_view = int(request.data["prepare"]["view"])
             consensus_number = int(request.data["prepare"]["number"])
@@ -160,7 +163,7 @@ def prepare(request, format=None):
 
             if orderer.verify_signature(public_key=remote_peer.get_public_key(), signature=signature, message=bytes_prepare) == False:
                 prepare_accepted = False
-                print("pre-prepare recusado: falha na assinatura")
+                print("prepare recusado: falha na assinatura")
 
             if consensus_view != orderer.consensus_view:
                 prepare_accepted = False
@@ -197,7 +200,7 @@ def commit(request, format=None):
         remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
         orderer = Orderer.get_instance()
 
-        if remote_peer!=None and remote_peer.is_publishing_node:
+        if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.authorized:
             commit_accepted = True
             consensus_view = int(request.data["commit"]["view"])
             consensus_number = int(request.data["commit"]["number"])
@@ -249,6 +252,47 @@ def get_confirmed_transaction(request, pk, format=None):
             return Response(data=transaction, status=status.HTTP_200_OK)
         except Exception as ex:
             return Response(data=f'Erro: {ex}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+@api_view(['POST'])
+def become_leader(request, format=None):
+    '''
+    peer recebeu pedido para se tornar líder
+    '''
+    print('become_leader acionado')
+    if request.method == 'POST':
+        try:
+            orderer = Orderer.get_instance()
+            remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+
+            if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.authorized:
+                thread_start_as_leader = threading.Thread(target=Orderer.start_as_leader, daemon=True)
+                thread_start_as_leader.start()
+                return Response(data='accepted', status=status.HTTP_200_OK)
+            else:
+                return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)
+        except Exception as ex:
+            print(f'become_leader: {ex}')
+            return Response(data=f'Error: {ex}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+@api_view(['POST'])
+def new_leader(request, format=None):
+    '''
+    O novo líder enviou um comando informando sua liderança.
+    '''
+    print('new_leader acionado')
+    if request.method == 'POST':
+        try:
+            orderer = Orderer.get_instance()
+            remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+
+            if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.authorized:
+                orderer.consensus_leader_id = remote_peer.id
+                return Response(data='accepted', status=status.HTTP_200_OK)
+            else:
+                return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)
+        except Exception as ex:
+            print(f'new_leader: {ex}')
+            return Response(data=f'Error: {ex}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 @api_view(['GET'])
 def get_last_block_id(request, format=None):
