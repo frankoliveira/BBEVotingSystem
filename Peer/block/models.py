@@ -9,6 +9,7 @@ class Block(models.Model):
     timestamp = models.DateTimeField('Timestamp', auto_now=False, db_column='timestamp') #cria a hora sozinho a cada save()
     merkle_root = models.CharField('Merkle Root', max_length=64, db_column='merkle_root') #equivale ao hash da raiz da Mekle Tree
     previous_hash = models.CharField('Previous Hash', max_length=64, db_column='previous_hash')
+    #total_transactions = models.IntegerField(verbose_name='Transações totais', help_text="Porta", db_column='total_transactions')
     transactions = models.CharField('Transactions', max_length=500, db_column='transactions')
     
     class Meta:

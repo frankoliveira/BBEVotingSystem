@@ -262,8 +262,9 @@ class Orderer():
                 for i in range(len(transactions_list)):
                     transaction_dict = transactions_list[i]
                     transaction = Transaction.get_element_by_id(id=transaction_dict["id"])
-                    transaction.confirmed = True
-                    transaction.save()
+                    if transaction:
+                        transaction.confirmed = True
+                        transaction.save()
 
                     #referência entre transação e bloco
                     transaction_block = TransactionBlock()
@@ -283,6 +284,70 @@ class Orderer():
         merkle_tree_leafs = [json.dumps(trx) for trx in transaction_dicts]
         _merkle_root = Block.create_merkle_root(leafs=merkle_tree_leafs)
         return _merkle_root==merkle_root
+    
+    @staticmethod
+    def get_remote_block(id: int):
+        orderer = Orderer.get_instance()
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id).order_by('?')
+
+        try:
+            peer = peers[0]
+            url = f'http://{peer.host}:{peer.port}/block/{id}'
+            response = requests.get(url=url)
+            received_data = response.json()
+            if received_data["block"]:
+                block_serializer = BlockSerializer(data=received_data["block"])
+
+                if block_serializer.is_valid():
+                    block: Block = block_serializer.save()
+                    transactions_list: list = json.loads(block.transactions)
+
+                    for i in range(len(transactions_list)):
+                        #referência entre transação e bloco
+                        transaction_dict = transactions_list[i]
+                        transaction_block = TransactionBlock()
+                        transaction_block.id_transaction = transaction_dict["id"]
+                        transaction_block.id_block = block.id
+                        transaction_block.position = i
+                        transaction_block.timestamp = datetime.now()
+                        transaction_block.save()  
+                    return True
+            return False
+        except Exception as ex:
+            print(f"erro get_remote_block: {ex}")
+            return False
+    
+    @staticmethod 
+    def check_for_blockchain_update():
+        try:
+            orderer = Orderer.get_instance()
+            peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
+            network_latest_block_id = -1
+
+            for peer in peers:
+                try:
+                    url = f'http://{peer.host}:{peer.port}/last-block-id/'
+                    response = requests.get(url=url)
+                    if response.json['id']:
+                        received_id_block = int(response.json['id'])
+                        if received_id_block > network_latest_block_id:
+                            network_latest_block_id = received_id_block
+                except Exception as ex:
+                    print(f"error get {url}: {ex}")
+
+            peer_latest_block = Blockchain.get_last_block()
+            if peer_latest_block and peer_latest_block.id < network_latest_block_id:
+                next_block_id= peer_latest_block.id + 1
+                keep_seek = True
+                while keep_seek:
+                    keep_seek = orderer.get_remote_block(next_block_id)
+                    next_block_id + 1
+                    time.sleep(1)
+            elif not peer_latest_block:
+                #genesis
+                orderer.get_remote_block(0)
+        except Exception as ex:
+            print(f"erro check_for_blockchain_update: {ex}")
     
 class ConsensusPeer():
     def __init__(self, peer: Peer) -> None:

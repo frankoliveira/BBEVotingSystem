@@ -5,6 +5,7 @@ from block.models import Block
 from blockchain.models import Blockchain
 from peer.models import Peer
 from security.CustomRSA import CustomRSA
+from django.core.paginator import Paginator
 
 #Serializers
 from transaction.serializers import TransactionSerializer, TransactionBlockSerializer
@@ -18,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from datetime import datetime
 from rest_framework.decorators import api_view
+import threading
 
 @api_view(['POST']) 
 def pending_transaction(request, format=None):
@@ -31,7 +33,7 @@ def pending_transaction(request, format=None):
         if remote_peer==None:
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
         
-        if remote_peer.is_publishing_node:
+        if remote_peer.is_publishing_node and remote_peer.authorized:
             transaction_serializer = TransactionSerializer(data=request.data["transaction"])
 
             if transaction_serializer.is_valid():
@@ -39,14 +41,18 @@ def pending_transaction(request, format=None):
                 return Response("accepted", status=status.HTTP_201_CREATED)
             
             return Response(transaction_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        else:
+        elif remote_peer.authorized:
             input = request.data['input']
             id = sha256(input.encode('utf-8')).hexdigest()
+            origin = request.data['origin']
+            signature = request.data['signature']
             if Transaction.check_if_exist(id=id)==False and TransactionBlock.check_if_exist(id=id)==False:
                 transaction = Transaction.objects.create(
                     id = id,
                     input = input,
-                    timestamp = datetime.now()
+                    timestamp = datetime.now(),
+                    origin = origin,
+                    signature = signature
                 )
 
                 transaction_serializer = TransactionSerializer(instance=transaction)
@@ -99,6 +105,11 @@ def pre_prepare(request, format=None):
                         pre_prepare_accepted = False
                         print("pre-prepare recusado: view diferente")
 
+                    if Blockchain.get_last_block().id+1 != consensus_number:
+                        pre_prepare_accepted = False
+                        thread_check_for_blockchain_update = threading.Thread(target=orderer.check_for_blockchain_update)
+                        thread_check_for_blockchain_update.start()
+                        print("pre-prepare recusado: numero incorreto")
                     if orderer.check_hash(data=bytes_block, hash=consensus_block_hash) == False:
                         pre_prepare_accepted = False
                         print("pre-prepare recusado: hash incorreto")
@@ -218,4 +229,50 @@ def commit(request, format=None):
             return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def get_confirmed_transaction(request, pk, format=None):
+    """
+    Lista de blocos.
+    """
+    id_transaction = pk
+    if request.method == 'GET':
+        try:
+            transaction = {
+                "transaction": None
+            }
+            transaction_block = TransactionBlock.get_element_by_id(id_transaction=id_transaction)
+            if transaction_block:
+                block = Blockchain.get_block(id=transaction_block.id_block)
+                transactions_list: list = json.loads(block.transactions)
+                transaction['transaction'] = transactions_list[transaction_block.position]
+            return Response(data=transaction, status=status.HTTP_200_OK)
+        except Exception as ex:
+            return Response(data=f'Erro: {ex}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+@api_view(['GET'])
+def get_last_block_id(request, format=None):
+    if request.method == 'GET':
+        id_block = None
+        block = Blockchain.get_last_block()
+        if block:
+            id_block = block.id
+        return Response(data={"id": id_block}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+def get_block(request, pk, format=None):
+    if request.method == 'GET':
+        id = int(pk)
+        block = None
+        block = Blockchain.get_block(id=id)
+        block_serializer_data = None
+        if block:
+            block_serializer_data = BlockSerializer(instance=block).data
+
+        return Response(data={"block": block_serializer_data}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+def teste(request, format=None):
+    if request.method == 'GET':
+        Orderer.get_instance().check_for_blockchain_update()
+        return Response(data="ok", status=status.HTTP_200_OK)

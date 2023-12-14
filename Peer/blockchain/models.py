@@ -16,7 +16,7 @@ class Blockchain:
                               timestamp = datetime.now(),
                               merkle_root = '',
                               previous_hash = '',
-                              transactions= ''
+                              transactions= '[]'
                               )
         genesis_block.save()
         return genesis_block
@@ -53,6 +53,14 @@ class Blockchain:
             block_index += 1
         
         return True
+    
+    @staticmethod
+    def get_block(id: int):
+        try:
+            block = Block.objects.get(id=id)
+            return block
+        except Block.DoesNotExist:
+            return None
 
     @staticmethod
     def create_merkle_root(transactions: list):
