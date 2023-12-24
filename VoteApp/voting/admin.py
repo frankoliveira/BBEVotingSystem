@@ -1,5 +1,6 @@
 from django.contrib import admin
-from voting.models import Election, Position, Candidacy, ElectionVoter, Vote, ElectionResult
+from voting.models import Election, Position, Candidacy, ElectionVoter, Vote
+from voting.models import  ElectionResultTransaction, ElectionTransaction
 
 # Register your models here.
 @admin.register(Election)
@@ -20,4 +21,12 @@ class ElectionVoterModelAdmin(admin.ModelAdmin):
 
 @admin.register(Vote)
 class VoteModelAdmin(admin.ModelAdmin):
-    list_display = ('id_election', 'answer')
+    list_display = ('id_election', 'id_transaction')
+
+@admin.register(ElectionTransaction)
+class ElectionTransactionAdmin(admin.ModelAdmin):
+    list_display = ('id_election', 'id_transaction')
+
+@admin.register(ElectionResultTransaction)
+class ElectionResultTransactionAdmin(admin.ModelAdmin):
+    list_display = ('id_election', 'id_transaction')

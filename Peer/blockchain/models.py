@@ -16,6 +16,7 @@ class Blockchain:
                               timestamp = datetime.now(),
                               merkle_root = '',
                               previous_hash = '',
+                              total_transactions = 0,
                               transactions= '[]'
                               )
         genesis_block.save()
@@ -30,6 +31,7 @@ class Blockchain:
                                              timestamp = timestamp,
                                              merkle_root = merkle_root, 
                                              previous_hash=last_block.hash(),
+                                             total_transactions = 0,
                                              transactions = transactions
                                              ) 
             return new_block

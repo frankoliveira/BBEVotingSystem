@@ -33,7 +33,9 @@ urlpatterns = [
     path('gerenciador/eleicoes/atualizacao/<int:pk>/', views.election_update_manager, name='atualizacao-eleicao'),
     path('gerenciador/eleicoes/cargos/atualizacao/<int:pk>/', views.position_update_manager, name='cargo-atualizacao-gerenciador'),
 
+    path('gerenciador/eleicoes/concluir/<int:pk>/', views.election_conclude_pre_voting, name='concluir-eleicao-gerenciador'),
     path('gerenciador/eleicoes/apurar/<int:pk>/', views.election_vote_count, name='apurar-eleicao-gerenciador'),
+
     #path('gerenciador/eleicoes/resultados/<int:pk>/', views.election_results_manager, name='contagem-eleicao-gerenciador'),
     
     path('eleicoes/parcial-results/', views.parcial_results, name='parcial-results'),

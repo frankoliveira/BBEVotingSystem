@@ -6,7 +6,7 @@ class BlockModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'transactions',  'timestamp', 'previous_hash', 'hash')
 
     fieldsets = (
-        ('Header', {'fields': ('peer', 'timestamp', 'merkle_root', 'previous_hash')}),
+        ('Header', {'fields': ('peer', 'timestamp', 'merkle_root', 'previous_hash', 'total_transactions')}),
         ('Transações', {'fields': ('transactions',)})
     )
     

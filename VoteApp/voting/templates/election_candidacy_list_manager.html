@@ -23,6 +23,10 @@
                 <th scope="col">Número</th>
                 <th scope="col">Nome</th>
                 <th scope="col">Tipo</th>
+                {% if election.phase == 3 %}
+                <th scope="col">Resultado</th>
+                {% endif %}
+
                 {% if election.phase == 1 %}
                 <th scope="col">Ações</th>
                 {% endif %}
@@ -34,6 +38,9 @@
                     <td>{{ candidacy.number }}</td>
                     <td>{{ candidacy.name }}</td>
                     <td>{{ candidacy.get_type_description }}</td>
+                    {% if election.phase == 3 %}
+                    <td>{{ candidacy.decrypted_result }}</td>
+                    {% endif %}
                     {% if election.phase == 1 %}
                     <td>
                         <a href="{% url 'cargo-atualizacao-gerenciador' pk=position.id %}" class="text-primary">

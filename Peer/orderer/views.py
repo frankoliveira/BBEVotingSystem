@@ -21,8 +21,6 @@ from datetime import datetime
 from rest_framework.decorators import api_view
 import threading
 
-orderer = Orderer.get_instance()
-
 @api_view(['POST']) 
 def pending_transaction(request, format=None):
     '''
@@ -30,15 +28,17 @@ def pending_transaction(request, format=None):
     Or receive a created transaction from a publishing node
     '''
     if request.method == 'POST':
-        remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+        remote_peer: Peer = Peer.get_peer_by_number(number=request.data["peer_number"])
         
         if remote_peer==None:
             return Response(data='Peer não tem permissão', status=status.HTTP_400_BAD_REQUEST)
         
         if remote_peer.is_publishing_node and remote_peer.authorized:
             transaction_serializer = TransactionSerializer(data=request.data["transaction"])
-
+            print('inferno1')
+            print(request.data["transaction"])
             if transaction_serializer.is_valid():
+                print('inferno2')
                 transaction_serializer.save()
                 return Response("accepted", status=status.HTTP_201_CREATED)
             
@@ -72,6 +72,7 @@ def create_consensus_block(request, format=None):
     '''
     if request.method == 'GET':
         try:
+            Orderer.get_instance().broadcast_leadership()
             new_block = Orderer.propose_block()
             if new_block:
                 block_serializer = BlockSerializer(instance=new_block)
@@ -90,9 +91,9 @@ def pre_prepare(request, format=None):
     if request.method == 'POST':
         try:
             orderer = Orderer.get_instance()
-            remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+            remote_peer: Peer = Peer.get_peer_by_number(number=request.data["peer_number"])
 
-            if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.id==orderer.consensus_leader_id and remote_peer.authorized:
+            if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.number==orderer.consensus_leader_number and remote_peer.authorized:
                 block_serializer = BlockSerializer(data=request.data["block"])
                 print(request.data["block"])
                 if block_serializer.is_valid():
@@ -110,8 +111,8 @@ def pre_prepare(request, format=None):
 
                     if Blockchain.get_last_block().id+1 != consensus_number:
                         pre_prepare_accepted = False
-                        thread_check_for_blockchain_update = threading.Thread(target=orderer.check_for_blockchain_update)
-                        thread_check_for_blockchain_update.start()
+                        #thread_check_for_blockchain_update = threading.Thread(target=orderer.check_for_blockchain_update)
+                        #thread_check_for_blockchain_update.start()
                         print("pre-prepare recusado: numero incorreto")
                     if orderer.check_hash(data=bytes_block, hash=consensus_block_hash) == False:
                         pre_prepare_accepted = False
@@ -132,6 +133,7 @@ def pre_prepare(request, format=None):
                         orderer.consensus_block_dict = block_serializer.data
                         orderer.consensus_number = consensus_number
                         orderer.consensus_block_hash = consensus_block_hash
+                        orderer.consensus_view = consensus_view
                         print('enviando prepare')
                         orderer.send_prepare()
                         return Response(data='accepted', status=status.HTTP_200_OK)
@@ -151,7 +153,7 @@ def prepare(request, format=None):
     '''
     print('prepare acionado')
     if request.method == 'POST':
-        remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+        remote_peer: Peer = Peer.get_peer_by_number(number=request.data["peer_number"])
         orderer = Orderer.get_instance()
         if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.authorized:
             prepare_accepted = True
@@ -197,7 +199,7 @@ def commit(request, format=None):
     '''
     print('commit acionado')
     if request.method == 'POST':
-        remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+        remote_peer: Peer = Peer.get_peer_by_number(number=request.data["peer_number"])
         orderer = Orderer.get_instance()
 
         if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.authorized:
@@ -262,11 +264,11 @@ def become_leader(request, format=None):
     if request.method == 'POST':
         try:
             orderer = Orderer.get_instance()
-            remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+            remote_peer: Peer = Peer.get_peer_by_number(number=request.data["peer_number"])
 
             if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.authorized:
-                thread_start_as_leader = threading.Thread(target=Orderer.start_as_leader, daemon=True)
-                thread_start_as_leader.start()
+                #thread_start_as_leader = threading.Thread(target=Orderer.start_as_leader, daemon=True)
+                #thread_start_as_leader.start()
                 return Response(data='accepted', status=status.HTTP_200_OK)
             else:
                 return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)
@@ -283,10 +285,10 @@ def new_leader(request, format=None):
     if request.method == 'POST':
         try:
             orderer = Orderer.get_instance()
-            remote_peer: Peer = Peer.get_peer_by_id(id=request.data["peer_id"])
+            remote_peer: Peer = Peer.get_peer_by_number(number=request.data["peer_number"])
 
             if remote_peer!=None and remote_peer.is_publishing_node and remote_peer.authorized:
-                orderer.consensus_leader_id = remote_peer.id
+                orderer.consensus_leader_number = remote_peer.number
                 return Response(data='accepted', status=status.HTTP_200_OK)
             else:
                 return Response(data='refused', status=status.HTTP_400_BAD_REQUEST)

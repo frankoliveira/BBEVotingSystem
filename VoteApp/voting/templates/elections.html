@@ -17,8 +17,8 @@
                 {% for election in elections %}
                 <tr class="table-light">
                     <td>{{ election.tittle }}</td>
-                    <td>{{ election.start }}</td>
-                    <td>{{ election.end }}</td>
+                    <td>{{ election.start|date:"d/m/Y, H:i" }}</td>
+                    <td>{{ election.end|date:"d/m/Y, H:i" }}</td>
                     <td>
                         <a href="/eleicoes/votar/{{election.id}}">
                             <span class="material-icons" title="Votar">how_to_vote</span>

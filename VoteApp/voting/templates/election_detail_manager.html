@@ -8,6 +8,25 @@
             <h3>{{ election.description }}</h3>
         </div>
 
+        <div class="row mb-3">
+            <div class="col">
+                {% if election.phase == 1 %}
+                <a href="{% url 'atualizacao-eleicao' pk=election.id %}" class="btn btn-primary">
+                     Editar
+                </a>
+                <a href="{% url 'concluir-eleicao-gerenciador' pk=election.id %}" class="btn btn-primary">
+                    Concluir
+               </a>
+                {% endif %}
+
+                {% if vote_count_allowed %}
+                <a href="{% url 'apurar-eleicao-gerenciador' pk=election.id %}" class="btn btn-success">
+                    Apurar
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
         <hr>
 
         <div class="row mb-3">
@@ -28,10 +47,12 @@
         {% if election.phase == 2 or election.phase == 3 %}
         <div class="row mb-3">
             <div class="col-2">
-                <strong>Votos recebidos</strong>: {{ total_votes_received }}
+                <!--<strong>Votos recebidos</strong>: {{ total_votes_received }-->
+                <strong>Votos recebidos</strong>: {{ 0 }}
             </div>
             <div class="col-3">
-                <strong>Participação</strong>: {{ participation_percentage }}%
+                <!--<strong>Participação</strong>: {{ participation_percentage }%-->
+                <strong>Participação</strong>: {{ "0,0" }}%
             </div>
         </div>
         {% endif %}
@@ -62,16 +83,6 @@
                 <a href="{% url 'eleicoes-gerenciador' %}" class="btn btn-primary">
                     Voltar
                 </a>
-                {% if election.phase == 1 %}
-                <a href="{% url 'atualizacao-eleicao' pk=election.id %}" class="btn btn-primary">
-                     Editar
-                </a>
-                {% endif %}
-                {% if vote_count_allowed %}
-                <a href="{% url 'apurar-eleicao-gerenciador' pk=election.id %}" class="btn btn-success">
-                    Apurar
-                </a>
-                {% endif %}
             </div>
         </div>
     </main>

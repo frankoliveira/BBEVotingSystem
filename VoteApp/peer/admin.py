@@ -3,4 +3,4 @@ from .models import Peer
 
 @admin.register(Peer)
 class PeerModelAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'is_publishing_node', 'authorized')
+    list_display = ('id', 'number', 'is_publishing_node', 'authorized')

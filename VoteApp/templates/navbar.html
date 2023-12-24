@@ -15,11 +15,13 @@
                                     <b>Início</b>
                                 </a>
                             </li>
+                            {% if user.is_superuser %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'eleicoes-gerenciador' %}">
                                     <b>Gerenciar</b>
                                 </a>
                             </li>
+                            {% endif %}
                         </ul>
                         <span><b>{{ user.first_name }}</b></span>
                     </div>

@@ -9,7 +9,7 @@ class Transaction(models.Model):
     timestamp = models.DateTimeField(verbose_name='Timestamp', auto_now=False, db_column='timestamp') #recebimento
     confirmed = models.BooleanField(verbose_name='Confirmed', default=False, db_column='confirmed')
     origin = models.CharField(verbose_name='Origin', max_length=200, db_column='origin')
-    signature = models.CharField(verbose_name='Signature', max_length=300, db_column='signature')
+    signature = models.CharField(verbose_name='Signature', max_length=500, db_column='signature')
     
     class Meta:
         verbose_name = 'Transaction'

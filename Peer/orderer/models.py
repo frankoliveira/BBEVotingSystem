@@ -23,13 +23,14 @@ from transaction.serializers import TransactionSerializer
 class Orderer():
     instance = None
     
-    def __init__(self, peer_id:str, transactions_per_block:int, peer_private_key:RSAPrivateKey=None) -> None:
-        self.peer_id = peer_id
+    def __init__(self, peer_number:int, transactions_per_block:int, peer_private_key:RSAPrivateKey) -> None:
+        self.peer_number = peer_number
         self.transactions_per_block = transactions_per_block
         self.peer_private_key: RSAPrivateKey = peer_private_key
         
-        self.consensus_leader_id = None
-        self.consensus_view: int = 1
+        #self.consensus_leader_id = None
+        self.consensus_leader_number = None
+        self.consensus_view: int = 0
         self.consensus_block_dict: dict = None
         self.consensus_block_hash: str = None
         self.consensus_number: int = 0
@@ -44,16 +45,18 @@ class Orderer():
 
             config_values = Orderer.get_config_from_json("./appsettings.json")
             print('config: ', config_values)
-            self.instance = self(peer_id=f'{config_values["ip"]}:{config_values["port"]}', 
+            self.instance = self(peer_number=config_values["peer_number"], 
                                  transactions_per_block=config_values["max_block_trxs"], 
                                  peer_private_key=CustomRSA.load_pem_private_key_from_file('rsa_keys/private_key.pem'))
             if config_values['start_as_leader']==1:
-                #pass
+                pass
+                
                 if Blockchain.get_last_block() == None:
+                    #pass
                     Blockchain.create_genesis_block()
-                thread_start_as_leader = threading.Thread(target=Orderer.start_as_leader, daemon=True)
-                thread_start_as_leader.start()
-            #exit(-1)
+                #thread_start_as_leader = threading.Thread(target=Orderer.start_as_leader, daemon=True)
+                #thread_start_as_leader.start()
+            
         return self.instance
     
     def load_consensus_peers(self):
@@ -94,6 +97,7 @@ class Orderer():
         return hash==_hash
     
     def start_as_leader():
+        Orderer.get_instance().consensus_view = Orderer.get_instance().peer_number
         keep_leading = True
         while keep_leading:
             try:
@@ -118,10 +122,10 @@ class Orderer():
         '''
         orderer = Orderer.get_instance()
         message = {
-            "peer_id": orderer.peer_id,
+            "peer_number": orderer.peer_number,
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(number=orderer.peer_number)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/new-leader/'
@@ -135,10 +139,10 @@ class Orderer():
         Retorna true se algum peer aceitar o pedido para se tornar líder, ou false caso nenhum peer tenha aceitado.
         '''
         orderer = Orderer.get_instance()
-        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id).order_by('?')
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(number=orderer.peer_number).order_by('?')
             
         message = {
-            "peer_id": orderer.peer_id,
+            "peer_number": orderer.peer_number,
         }
             
         for peer in peers:
@@ -159,11 +163,11 @@ class Orderer():
         '''
         orderer = Orderer.get_instance()
         message = {
-            "peer_id": orderer.peer_id,
+            "peer_number": orderer.peer_number,
             "transaction": transction_dict
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(number=orderer.peer_number)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/pending-transactions/'
@@ -183,10 +187,11 @@ class Orderer():
             transactions_serializer =  TransactionSerializer(instance=unconfirmed_transactions, many=True)
             merkle_tree_leafs = [json.dumps(transaction) for transaction in transactions_serializer.data]
             block = Block()
-            block.peer = orderer.peer_id
+            block.peer = orderer.peer_number
             block.timestamp = datetime.now()
             block.merkle_root = Block.create_merkle_root(leafs=merkle_tree_leafs)
             block.previous_hash = Block.objects.last().hash()
+            block.total_transactions = len(unconfirmed_transactions)
             block.transactions = json.dumps(transactions_serializer.data)
             return block
         return None
@@ -202,6 +207,7 @@ class Orderer():
 
         if new_block:
             Orderer.send_pre_prepare(block=new_block)
+            time.sleep(5)
             Orderer.send_prepare()
             #Orderer.send_commit()
             return new_block
@@ -233,13 +239,13 @@ class Orderer():
         signature = base64.b64encode(sign).decode('utf-8')
 
         message = {
-            'peer_id': orderer.peer_id, #usando para identificação
+            'peer_number': orderer.peer_number, #usando para identificação
             "pre_prepare": pre_prepare,
             "signature": signature, #assinatura
             "block": orderer.consensus_block_dict #m: mensagem
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(number=orderer.peer_number)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/pre-prepare/'
@@ -268,12 +274,12 @@ class Orderer():
         signature = base64.b64encode(sign).decode('utf-8')
 
         message = {
-            'peer_id': orderer.peer_id,
+            'peer_number': orderer.peer_number,
             'prepare': prepare,
             'signature': signature
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(number=orderer.peer_number)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/prepare/'
@@ -300,12 +306,12 @@ class Orderer():
         signature = base64.b64encode(sign).decode('utf-8')
 
         message = {
-            "peer_id": orderer.peer_id,
+            "peer_number": orderer.peer_number,
             "commit": commit,
             "signature": signature
         }
 
-        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(number=orderer.peer_number)
         for peer in peers:
             try:
                 url = f'http://{peer.host}:{peer.port}/commit/'
@@ -359,7 +365,7 @@ class Orderer():
     @staticmethod
     def get_remote_block(id: int):
         orderer = Orderer.get_instance()
-        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id).order_by('?')
+        peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(number=orderer.peer_nu).order_by('?')
 
         try:
             peer = peers[0]
@@ -392,7 +398,7 @@ class Orderer():
     def check_for_blockchain_update():
         try:
             orderer = Orderer.get_instance()
-            peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(id=orderer.peer_id)
+            peers = Peer.objects.filter(is_publishing_node=True, authorized=True).exclude(number=orderer.peer_number)
             network_latest_block_id = -1
 
             for peer in peers:

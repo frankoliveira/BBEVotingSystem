@@ -91,6 +91,13 @@ class Election(models.Model):
         positions = Position.objects.filter(id_election=self.id).order_by("order") #retorna uma queryset vazia se não tiver resultados
         return [position for position in positions]
     
+    @staticmethod
+    def get_latest_elections():
+        #phase=2
+        #deve ser uma quantidade específica
+        elections = Election.objects.all().exclude(phase=1)
+        return [election for election in elections]
+    
     def get_phase_description(self):
         return ElectionPhaseEnum.get_description(value=self.phase)
     
@@ -156,15 +163,15 @@ class Election(models.Model):
             
             vote_string_format = json.dumps(vote_dict)
             transacao_id = "teste"
-            #transacao_id = Orderer.create_transaction(input=vote_string_format)
-            transacao_id = "ID-PARA-TESTE"
+            transacao_id = Orderer.create_transaction(input=vote_string_format)
+            #transacao_id = "ID-PARA-TESTE"
 
             if not transacao_id:
                 return None
 
             for candidacy in candidacies_for_update:
                 candidacy.save()
-            self.create_vote(voter_answer=vote_string_format)
+            self.create_vote(voter_answer=vote_string_format, id_transaction=transacao_id)
             self.set_has_voted(id_user=id_user)
 
             return transacao_id
@@ -200,10 +207,11 @@ class Election(models.Model):
             data = file.read()
         return PheManager.load_public_key_from_str(public_key=data)
     
-    def create_vote(self, voter_answer: str):
+    def create_vote(self, voter_answer: str, id_transaction: str):
         vote = Vote()
         vote.id_election = self
-        vote.answer = voter_answer
+        #vote.answer = voter_answer
+        vote.id_transaction = id_transaction
         vote.save()
         return vote
     
@@ -376,24 +384,14 @@ class ElectionVoter(models.Model):
 
 class Vote(models.Model):
     id_election = models.ForeignKey(to=Election, on_delete=models.DO_NOTHING, related_name='votes', db_column='id_eleicao')
-    answer = models.CharField(verbose_name='Resposta', max_length=500, db_column='resposta')
+    #answer = models.CharField(verbose_name='Resposta', max_length=500, db_column='resposta')
     id_transaction = id_transaction = models.CharField(verbose_name='Transação', max_length=64, default='', db_column='id_transacao')
-
-class ElectionResult(models.Model):
-    id_election = models.OneToOneField(to=Election, on_delete=models.DO_NOTHING, verbose_name='Eleição', db_column='id_eleicao')
-    result = models.CharField(verbose_name='Resultado', max_length=100, db_column='resultado')
-    creation = models.DateTimeField(verbose_name='Criação', auto_now=False, db_column='criacao')
-    
-    class Meta:
-        verbose_name = 'Resultado de Eleição'
-        verbose_name_plural = 'Resultados de Eleições'
-        ordering = ['id']
 
 class ElectionTransaction(models.Model):
     '''
     Referência para o registro das informações da eleição gravadas na blockchain.
     '''
-    id_lection_result = models.OneToOneField(Election, verbose_name='Eleição', on_delete=models.DO_NOTHING, db_column='id_eleicao')
+    id_election = models.OneToOneField(Election, verbose_name='Eleição', on_delete=models.DO_NOTHING, db_column='id_eleicao')
     id_transaction = models.CharField(verbose_name='Transação', max_length=64, db_column='id_transacao')
 
     class Meta:
@@ -404,7 +402,7 @@ class ElectionResultTransaction(models.Model):
     '''
     Referência para o resultado da eleição gravado na blockchain.
     '''
-    id_lection = models.OneToOneField(ElectionResult, on_delete=models.DO_NOTHING, db_column='id_resultado_eleicao')
+    id_election = models.OneToOneField(Election, on_delete=models.DO_NOTHING, db_column='id_eleicao')
     id_transaction = models.CharField(verbose_name='Transação', max_length=64, db_column='id_transacao')
 
     class Meta:

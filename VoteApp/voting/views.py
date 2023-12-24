@@ -1,7 +1,9 @@
 #Model
 from users.models import CustomUser
-from voting.models import Election, Position, Candidacy, ElectionVoter, ElectionPhaseEnum, CandidacyTypeEnum
+from voting.models import Election, Position, Candidacy, ElectionVoter, ElectionPhaseEnum, CandidacyTypeEnum, ElectionTransaction
 from security.PheManager import PheManager
+from orderer.models import Orderer
+import json
 
 #Forms
 from voting.forms import ElectionCreateForm, ElectionUpdtateForm, PositionCreateForm, PositionUpdateForm
@@ -33,13 +35,13 @@ def index(request):
 @login_required
 def election_list(request, format=None):
     if request.method == 'GET':
-        elections = Election.objects.all()
-        serialized_elections = None
-        if elections:
-            serializer = ElectionSerializer(instance=elections, many=True)
-            serialized_elections = serializer.data
+        elections = Election.get_latest_elections()
+        #serialized_elections = None
+        #if elections:
+            #serializer = ElectionSerializer(instance=elections, many=True)
+            #serialized_elections = serializer.data
             
-        return render(request=request, template_name="elections.html", context={"elections": serialized_elections})
+        return render(request=request, template_name="elections.html", context={"elections": elections})
 
 @login_required
 def election_details(request, pk, format=None):
@@ -123,6 +125,8 @@ def election_list_manager(request, format=None):
     """
     Lista as eleições, ou cria uma nova.
     """
+    #user = request.user
+    #print("permissão: ", user.groups.filter(name="administrador").exists())
 
     if request.method == 'GET':
         election_list = Election.objects.all()
@@ -288,7 +292,7 @@ def election_voter_creation_manager(request, pk, format=None):
         paginator = Paginator(object_list=users_list, per_page=10)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
-
+    
         context = {
             "election": election,
             "election_voters_id_list": election_voters_id_list,
@@ -509,13 +513,50 @@ def election_vote_count(request, pk, format=None):
             election.phase = ElectionPhaseEnum.PosVoting.value
             election.save()
             #não vai rediretionar para eleicoes-gerenciador
-            return redirect('eleicoes-gerenciador')
+            return redirect('eleicao-gerenciador', pk=election.id)
 
         except Exception as ex:
             messages.warning(request, 'Ocorreu um erro ao apurar eleição.')
             return redirect('eleicoes-gerenciador')
+        
+@login_required
+def election_conclude_pre_voting(request, pk, format=None):
+    '''
+    Conclui a configuração.
+    '''
+    id_election=pk
+    election = Election.get_element_by_id(id=id_election)
 
+    #inserir lógica para apurar quando a eleição acabar
 
+    if election==None:
+        messages.warning(request, 'Eleição inexistente!')
+        return redirect('eleicoes-gerenciador')
+    
+    if request.method == 'GET':
+        try:
+            serializer = ElectionSerializer(instance=election)
+            string_election_data = json.dumps(serializer.data, sort_keys=True)
+            id_transaction = Orderer.get_instance().create_transaction(input=string_election_data)
+
+            if id_transaction:
+                election_transaction = ElectionTransaction()
+                election_transaction.id_election = election
+                election_transaction.id_transaction = election_transaction
+                election_transaction.save()
+
+                election.phase = ElectionPhaseEnum.Voting.value
+                election.save()
+            else:
+                messages.warning(request, 'Erro ao enviar dados d eleição para a blockchain')
+
+            #não vai rediretionar para eleicoes-gerenciador
+            return redirect('eleicao-gerenciador', pk=election.id)
+
+        except Exception as ex:
+            messages.warning(request, 'Ocorreu um erro ao concluir eleição.')
+            print('GET election_conclude_pre_voting exception: ', ex)
+            return redirect('eleicoes-gerenciador')
 
 #End-points extras (REST)
 @api_view(['POST'])
@@ -532,7 +573,7 @@ def candidacy_details(request, format=None):
             candidacy = Candidacy.get_element(id_election=id_election, id_position=id_position, number=number)
             if candidacy:
                 serializer = CandidacySerializer(instance=candidacy)
-                print(serializer.data)
+                #print(serializer.data)
                 return Response(data=serializer.data)
             return Response(data='Not found.', status=status.HTTP_404_NOT_FOUND)
         except Exception as ex:

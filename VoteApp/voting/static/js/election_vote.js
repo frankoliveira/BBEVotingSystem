@@ -10,6 +10,11 @@ function process_input(event, id_election){
         id_position = Number(event.target.name)
         position_answer = Number(event.target.value)
 
+        if (position_answer==0){
+            $(`#position-${id_position}-answer-info`).html(`Nulo`);
+            return;
+        }
+
         get_candidacy_details(id_position, position_answer, id_election)
     }
     else if (event.target.value.length===0){
@@ -24,6 +29,7 @@ function get_candidacy_details(id_position, candidacy_number, id_election) {
     /*$.ajaxSetup({
         headers: { 'X-CSRFToken': $.cookie('csrftoken')}
     })*/
+
     $.ajax({
         type: "POST",
         url: Url,

@@ -19,6 +19,7 @@ class ElectionVoterIdUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = ElectionVoter
         fields = ['id_user']
+        #fields = ['first_name', 'last_name']
 
 class ElectionSerializer(serializers.ModelSerializer):
     positions = PositionSerializer(many=True, read_only=True) #retorna o json dos cargos
